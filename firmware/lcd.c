@@ -39,7 +39,11 @@ void LCDClear(){
   LCDWrite(LCD_CMD_CLR, 0);
 }
 
+#ifdef __SDCC
 int putchar(int data){
+#else
+int __putchar(int data){
+#endif
   LCDWrite(data, 1);
   return data;
 }

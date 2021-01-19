@@ -34,6 +34,8 @@ PROJECT_SRC += delay_hw.c
 
 OBJECTS = $(patsubst %.c, $(OBJ_PATH)/%.rel, $(PROJECT_SRC))
 
+CHEAT_ARG := $(shell mkdir -p $(OBJ_PATH))
+
 VPATH += ..
 
 # ------------------ Build --------------------#
