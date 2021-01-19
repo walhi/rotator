@@ -9,7 +9,7 @@ extern int16_t portAzimuth;
 
 uint16_t parse(char* buf)
 {
-	uint16_t value;
+	uint16_t value = 0;
 	value += (buf[0] - '0') * 100;
 	value += (buf[1] - '0') * 10;
 	value += buf[2] - '0';

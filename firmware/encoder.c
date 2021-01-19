@@ -63,7 +63,7 @@ int8_t encoderAzBtnGet()
 	uint8_t state = encoderHwAzBtnGet();
 	if (state != encoderAzBtn){
 		encoderAzBtn = state;
-		delay_ms(10);
+		delay_hw_ms(10);
 		if (state == 0) return 1;
 	}
 	return 0;
@@ -74,7 +74,7 @@ int8_t encoderElBtnGet()
 	uint8_t state = encoderHwAzBtnGet();
 	if (state != encoderElBtn){
 		encoderElBtn = state;
-		delay_ms(10);
+		delay_hw_ms(10);
 		if (state == 0) return 1;
 	}
 	return 0;

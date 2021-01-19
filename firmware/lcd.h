@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-
 void LCDInit(void);
 
 void LCDWrite(uint8_t data, uint8_t mode);
@@ -14,11 +13,8 @@ void LCDClear(void);
 
 void LCDPrintString(char* str);
 
-int LCDPrintf (const char * format, ...);
+void LCDPrintf (const char * format, ...);
 
-inline void LCDPrintChar(char c)
-{
-  LCDWrite(c, 1);
-}
+void LCDPrintChar(char c);
 
 #endif

@@ -8,16 +8,17 @@
 #include "uart.h"
 #include "gs232.h"
 #include "delay_hw.h"
+#include "rotate_hw.h"
 
 extern struct config cfg;
 
 enum workMode mode;
 
-int16_t antAzimuth = 139;
-int16_t portAzimuth = 0xffff;
+extern int16_t antAzimuth;
+int16_t portAzimuth = 0x7fff;
 
-int16_t manAzimuth = 0xffff;
-int16_t targetAzimuth = 0xffff;
+int16_t manAzimuth = 0x7fff;
+int16_t targetAzimuth = 0x7fff;
 
 int main (void)
 {
@@ -25,20 +26,21 @@ int main (void)
   int16_t tmpTargetAzimuth;
 	int8_t step;
 	uint8_t modeBtn;
-  delay_ms(50);
+  delay_hw_ms(50);
 
   motorsInit();
   encoderInit();
   LCDInit();
 	UARTInit();
 
+  cfg.az_count = 360;
+
 	cfg.com_echo = 1;
   cfg.az_overlap_start = 170;
   cfg.az_overlap_end = 190;
 
+  rotateHwInit();
 
-
-	motorAzRight();
   /* startupMessage(); */
 	printUI();
   //configure();
@@ -70,6 +72,7 @@ int main (void)
         printTarget();
       }
     }
+    printAnt();
 		continue;
     if (targetAzimuth != antAzimuth){
       /* Переход от 0 - 360 в -180 - 180 */

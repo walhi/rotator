@@ -5,6 +5,8 @@
 /*extern struct config cfg;*/
 struct config cfg;
 
+int8_t azimuthTick = 0;
+int8_t elevationTick = 0;
 
 void motorsInit()
 {
@@ -13,6 +15,7 @@ void motorsInit()
 
 void motorAzLeft()
 {
+  azimuthTick = -1;
 	if (cfg.az_motor_invert){
 		motorAzR1Enable();
 	} else {
@@ -23,6 +26,7 @@ void motorAzLeft()
 
 void motorAzRight()
 {
+  azimuthTick = 1;
 	if (cfg.az_motor_invert){
 		motorAzR2Enable();
 	} else {
@@ -34,6 +38,7 @@ void motorAzRight()
 
 void motorAzStop()
 {
+  azimuthTick = 0;
 	motorAzDisable();
 	motorAzR1Disable();
 	motorAzR2Disable();
@@ -41,6 +46,7 @@ void motorAzStop()
 
 void motorElUp()
 {
+  elevationTick = 1;
 	if (cfg.az_motor_invert){
 		motorElR2Enable();
 	} else {
@@ -51,6 +57,7 @@ void motorElUp()
 
 void motorElDown()
 {
+  elevationTick = -1;
 	if (cfg.az_motor_invert){
 		motorElR2Enable();
 	} else {
@@ -62,6 +69,7 @@ void motorElDown()
 
 void motorElStop()
 {
+  elevationTick = 0;
 	motorElDisable();
 	motorElR1Disable();
 	motorElR2Disable();

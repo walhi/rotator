@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <util/delay.h>
 #include "ui.h"
 #include "lcd.h"
 
@@ -13,7 +12,6 @@ void startupMessage()
   LCDClear();
 	LCDPosition(0, 0); LCDPrintString("Alt. firmware");
 	LCDPosition(0, 1); LCDPrintString("RK3MXT Rotator");
-  _delay_ms(1000);
 }
 
 
