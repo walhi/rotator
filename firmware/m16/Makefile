@@ -54,6 +54,7 @@ PROJECT_SRC += encoder.c encoder_hw.c
 PROJECT_SRC += configure.c ui.c uart.c gs232.c delay_hw.c
 PROJECT_SRC += motors.c motors_hw.c
 PROJECT_SRC += rotate.c rotate_hw.c
+PROJECT_SRC += calibration.c
 OBJECTS = $(patsubst %.c, $(OBJ_PATH)/%.o, $(PROJECT_SRC))
 
 VPATH += ..
@@ -65,6 +66,9 @@ all: $(TARGET).elf $(TARGET).hex $(TARGET).eep size
 
 size: $(TARGET).elf
 	@$(ASIZE) --mcu=$(MCU) --format=avr $(TARGET).elf
+
+size-detail: $(OBJECTS)
+	@$(ASIZE) --mcu=$(MCU) $(OBJECTS)
 
 ## Compile
 $(OBJ_PATH)/%.o: %.c Makefile signals.h
@@ -80,7 +84,7 @@ signals.h: Makefile signals.conf
 ##Link
 $(TARGET).elf: $(OBJECTS)
 	@echo "Linking $(TARGET).elf"
-	$(CC) $(LDFLAGS) $(OBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET).elf
+	@$(CC) $(LDFLAGS) $(OBJECTS) $(LIBDIRS) $(LIBS) -o $(TARGET).elf
 
 %.hex: $(TARGET).elf
 	@echo "Generate $@"

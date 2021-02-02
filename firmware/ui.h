@@ -2,13 +2,14 @@
 #define UI_H
 
 enum workMode {
-           port,
-           manual,
+               none,
+               port,
+               manual,
 };
 
 void startupMessage(void);
 
-void printHeader(void);
+void initUI(void);
 
 void printTarget(void);
 
@@ -18,4 +19,5 @@ void printValues(void);
 
 void printUI(void);
 
+void printBigAnt(int16_t value);
 #endif

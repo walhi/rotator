@@ -20,12 +20,15 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0
 OBJ_PATH = obj
 
 INCLUDE = -I . -I ..
-CFLAGS = -mmcs51  --std-sdcc99 --model-small -c $(INCLUDE) --disable-warning 126 --opt-code-size
-LDFLAGS = --iram-size 256 --xram-size 0 --code-size 8192  --nooverlay --noinduction
+CFLAGS = -mmcs51 --std-sdcc99 --model-small -c $(INCLUDE) --disable-warning 126
+#CFLAGS += --opt-code-size
+LDFLAGS = --iram-size 256 --xram-size 0 --code-size 8192
+#LDFLAGS += --stack-auto
 
 PROJECT_SRC  = $(PROJECT).c
 PROJECT_SRC += ui.c
-#PROJECT_SRC += configure.c
+PROJECT_SRC += calibration.c
+PROJECT_SRC += configure.c
 PROJECT_SRC += motors.c motors_hw.c rotate_hw.c rotate.c
 PROJECT_SRC += encoder.c encoder_hw.c
 PROJECT_SRC += lcd.c lcd_hw.c
@@ -47,15 +50,16 @@ $(OBJ_PATH)/%.rel: %.c Makefile
 
 $(PROJECT).ihx: $(OBJECTS)
 	@echo "Linking $@"
-	$(CC) $(LFLAGS) $^
+	$(CC) $(LDFLAGS) $^
 
 $(PROJECT).hex:	$(PROJECT).ihx
 	@echo "Pack $@"
-	@packihx $(PROJECT).ihx > $(PROJECT).hex &> /dev/null
+	@packihx $(PROJECT).ihx > $(PROJECT).hex
 
 size: $(PROJECT).ihx
 	@echo "Size $^"
-	@size $^
+	@cat $(PROJECT).mem | grep "Stack starts"
+	@cat $(PROJECT).mem | grep "FLASH"
 
 #grep Area -A 2 $< | grep -v Area | grep -v - | uniq | awk '{print $$5"\t"$$1}' | grep [0-9]
 
@@ -67,7 +71,8 @@ clean:
 
 # ------------------ Flash --------------------#
 flash: $(PROJECT).hex
-	$(AVRDUDE) -c avrftdi -p 8052 -C ~/avrdude.conf -V -e -U flash:w:$(PROJECT).hex
+	$(AVRDUDE) -c pinboard_invert -p 8052 -C ~/avrdude.conf -V -e -U flash:w:$(PROJECT).hex
+#	$(AVRDUDE) -c avrftdi -p 8052 -C ~/avrdude.conf -V -e -U flash:w:$(PROJECT).hex
 
 # ------------------ Tags ---------------------#
 ETAGS?=etags

@@ -2,8 +2,9 @@
 #include "motors_hw.h"
 #include "configure.h"
 
-/*extern struct config cfg;*/
-struct config cfg;
+extern struct config cfg;
+extern struct configFlags cfgFlags;
+/*struct config cfg;*/
 
 int8_t azimuthTick = 0;
 int8_t elevationTick = 0;
@@ -16,7 +17,7 @@ void motorsInit()
 void motorAzLeft()
 {
   azimuthTick = -1;
-	if (cfg.az_motor_invert){
+	if (cfgFlags.az_motor_invert){
 		motorAzR1Enable();
 	} else {
 		motorAzR2Enable();
@@ -27,7 +28,7 @@ void motorAzLeft()
 void motorAzRight()
 {
   azimuthTick = 1;
-	if (cfg.az_motor_invert){
+	if (cfgFlags.az_motor_invert){
 		motorAzR2Enable();
 	} else {
 		motorAzR1Enable();
@@ -47,7 +48,7 @@ void motorAzStop()
 void motorElUp()
 {
   elevationTick = 1;
-	if (cfg.az_motor_invert){
+	if (cfgFlags.el_motor_invert){
 		motorElR2Enable();
 	} else {
 		motorElR1Enable();
@@ -58,7 +59,7 @@ void motorElUp()
 void motorElDown()
 {
   elevationTick = -1;
-	if (cfg.az_motor_invert){
+	if (cfgFlags.el_motor_invert){
 		motorElR2Enable();
 	} else {
 		motorElR1Enable();

@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+#ifdef __SDCC
+#define LCDPrintf printf_fast
+#else
+void LCDPrintf (const char * format, ...);
+#endif
+
 void LCDInit(void);
 
 void LCDWrite(uint8_t data, uint8_t mode);
@@ -13,8 +19,8 @@ void LCDClear(void);
 
 void LCDPrintString(char* str);
 
-void LCDPrintf (const char * format, ...);
-
 void LCDPrintChar(char c);
+
+void LCDPrintBigDigit(uint8_t digit, uint8_t pos);
 
 #endif

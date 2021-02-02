@@ -4,15 +4,9 @@
 
 static const uint16_t rot_enc_table = 0b0110100110010110;
 
-uint8_t encoderAzBtn;
-uint8_t encoderElBtn;
-
 void encoderInit()
 {
   encoderHwInit();
-
-	encoderAzBtn = encoderHwAzBtnGet();
-	encoderElBtn = encoderHwElBtnGet();
 }
 
 /* A vald CW or CCW move returns 1, invalid returns 0. */
@@ -60,6 +54,7 @@ int8_t encoderElGet()
 
 int8_t encoderAzBtnGet()
 {
+  static uint8_t encoderAzBtn = 1; /* extern pull up */
 	uint8_t state = encoderHwAzBtnGet();
 	if (state != encoderAzBtn){
 		encoderAzBtn = state;
@@ -71,6 +66,7 @@ int8_t encoderAzBtnGet()
 
 int8_t encoderElBtnGet()
 {
+  static uint8_t encoderElBtn = 1; /* extern pull up */
 	uint8_t state = encoderHwAzBtnGet();
 	if (state != encoderElBtn){
 		encoderElBtn = state;

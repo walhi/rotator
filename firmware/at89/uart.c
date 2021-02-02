@@ -4,7 +4,10 @@
 static char UARTBuf[16];
 static char UARTBufPos;
 
-extern struct config cfg;
+/* Конфигурация */
+extern struct configAz cfgAz;
+extern struct configEl cfgEl;
+extern struct configFlags cfgFlags;
 
 uint8_t flag = 0;
 

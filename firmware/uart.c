@@ -10,9 +10,9 @@ static char UARTBuf[16];
 static char UARTBufPos;
 
 extern struct config cfg;
+extern struct configFlags cfgFlags;
 
 uint8_t flag = 0;
-
 
 char* UARTGetBuf()
 {
@@ -64,12 +64,10 @@ ISR(USART_RXC_vect)
 {
 	uint8_t data = UDR;
 
-
-
 	UARTBuf[UARTBufPos++] = data;
 	if (data == '\n' || data == '\r'){
     flag = 1;
 		UARTBuf[UARTBufPos] = 0;
 	}
-	if (cfg.com_echo) UDR = data;
+	if (cfgFlags.com_echo) UDR = data;
 }

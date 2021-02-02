@@ -3,17 +3,19 @@
 #include "motors.h"
 
 extern int16_t antAzimuth;
-extern int16_t portAzimuth;
+extern int16_t antElevation;
+extern int16_t targetAzimuth;
+extern int16_t targetElevation;
 
 
 
 uint16_t parse(char* buf)
 {
 	uint16_t value = 0;
-	value += (buf[0] - '0') * 100;
+  value += (buf[0] - '0') * 100;
 	value += (buf[1] - '0') * 10;
 	value += buf[2] - '0';
-	return value;
+  return value;
 }
 
 /* Protocol Yeasu GS-232
@@ -79,7 +81,7 @@ void GS232Parse()
 		break;
 	case 'M':
 		/* Turn to aaa degrees azimuth. */
-		portAzimuth = parse(&buf[1]);
+		targetAzimuth = parse(&buf[1]);
 		break;
 	case 'W':
 		/* Turn to aaa degrees azimuth and eee degrees elevation. */

@@ -1,114 +1,252 @@
 #include <stdio.h>
-#include <avr/io.h>
-#include <util/delay.h>
-#include <avr/pgmspace.h>
+#include "delay_hw.h"
 #include "encoder.h"
 #include "configure.h"
 #include "lcd.h"
 
-struct config cfg;
+#ifdef __SDCC /* SDCC */
+/* SDCC для AT89S52 сам подставляет чтение   */
+/* из области FLASH                          */
+#define memcpy_P(x, y, z) (void)1
+#define currentItem list[i]
+
+#else /* AVR GCC */
+/* Для AVR GCC требуется самостоятельно      */
+/* считать данные из области FLASH           */
+#include <avr/pgmspace.h>
+#endif
+
+
+struct configAz cfgAz;
+struct configEl cfgEl;
+struct configFlags cfgFlags;
 
 struct menuItem{
 	char name[17]; /* 16 + end of string (0x00) */
 	int16_t min;
 	int16_t max;
-	int16_t* value;
+	union {
+		int16_t* value16;
+		uint8_t* value8;
+	};
 };
 
-#define MENU_COUNT 12
-const struct menuItem list[MENU_COUNT] PROGMEM = {
-                                                  {"AZ 360 imp count:", 0, 32000, &cfg.az_count},
-                                                  {"AZ overlap start:", 0, 360, &cfg.az_overlap_start},
-                                                  {"AZ overlap end:", 0, 360, &cfg.az_overlap_start},
-                                                  {"Elevation:", 0, 1, &cfg.el_enable},
-                                                  {"EL 180 imp count:", 0, 32000, &cfg.el_count},
-                                                  {"EL start:", 0, 180, &cfg.el_min},
-                                                  {"EL end:", 0, 180, &cfg.el_max},
-                                                  {"AZ motor invert:", 0, 1, &cfg.az_motor_invert},
-                                                  {"AZ encoder inv.:", 0, 1, &cfg.az_enc_invert},
-                                                  {"EL motor invert:", 0, 1, &cfg.el_motor_invert},
-                                                  {"EL encoder inv.:", 0, 1, &cfg.el_enc_invert},
-                                                  {"COM Port echo:", 0, 1, &cfg.com_echo},
-};
-struct menuItem currentItem;
+#define AZ_COUNT 4
+#ifdef __SDCC /* SDCC */
+__code const struct menuItem azList[AZ_COUNT] =
+#else /* AVR GCC */
+struct menuItem currentItem __attribute__ ((section (".noinit")));
+const struct menuItem azList[AZ_COUNT] PROGMEM =
+#endif
+	{
+	 {"AZ 360 imp count", 0, 32000, &cfgAz.count},
+	 {"AZ overlap pos:", 0, 360, &cfgAz.overlap_position},
+	 {"AZ overlap size:", 0, 360, &cfgAz.overlap_size},
+	 {"AZ Parking:", 0, 360, &cfgAz.parking},
+	};
 
-static void printHeader(struct menuItem* item)
+
+#define EL_COUNT 4
+#ifdef __SDCC /* SDCC */
+__code const struct menuItem elList[EL_COUNT] =
+#else /* AVR GCC */
+struct menuItem currentItem __attribute__ ((section (".noinit")));
+const struct menuItem elList[EL_COUNT] PROGMEM =
+#endif
+	{
+	 {"EL 180 imp count", 0, 32000, &cfgEl.count},
+	 {"EL start:", 0, 180, .value8=&cfgEl.min},
+	 {"EL end:", 0, 180, .value8=&cfgEl.max},
+	 {"EL Parking:", 0, 360, .value8=&cfgEl.parking},
+	};
+
+
+static void printHeader(char* name)
 {
   LCDClear();
   LCDPosition(0, 0);
-  LCDPrintString(item->name);
+  LCDPrintString(name);
 }
 
-static void printValue(struct menuItem* item, int16_t value)
+static void printValue(struct menuItem* item, int16_t value, uint8_t mode8)
 {
-  if (item->max == 1){
-    LCDPosition(9, 1);
-    if (value){
-      LCDPrintString(" Enable");
-    } else {
-      LCDPrintString("Disable");
-    }
-  } else {
-    LCDPosition(11, 1);
-    LCDPrintf("%5d", value);
-  }
+  LCDPosition(11, 1);
+  LCDPrintf("%5d", value);
 
   LCDPosition(0, 1);
-  if (*item->value != value){
-    LCDPrintChar('*');
-  } else {
-    LCDPrintChar(' ');
-  }
+	if (mode8){
+		if (*item->value8 != value){
+			LCDPrintChar('*');
+		} else {
+			LCDPrintChar(' ');
+		}
+	} else {
+		if (*item->value16 != value){
+			LCDPrintChar('*');
+		} else {
+			LCDPrintChar(' ');
+		}
+	}
 }
 
-void configure(void)
+#ifdef __SDCC
+__code const char enable_msg[] = "Enable";
+__code const char disable_msg[] = "Disable";
+#else
+#define enable_msg  " Enable"
+#define disable_msg "Disable"
+#endif
+
+uint8_t configureFlag(char* name, uint8_t value)
 {
-	uint8_t i;
+	uint8_t oldValue = value;
+	int8_t encoder;
+	uint8_t btn;
+  LCDClear();
+  LCDPosition(0, 0);
+  LCDPrintString(name);
+	LCDPosition(9, 1);
+	if (value){
+		LCDPrintString(enable_msg);
+	} else {
+		LCDPrintString(disable_msg);
+	}
+
+	while (1){
+		btn = encoderAzBtnGet();
+		encoder = encoderAzGet();
+    if (btn) break;
+
+		if (encoder){
+			if (encoder > 0){
+				value = 1;
+			} else {
+				value = 0;
+			}
+			LCDPosition(9, 1);
+			if (value){
+				LCDPrintString(enable_msg);
+			} else {
+				LCDPrintString(disable_msg);
+			}
+
+			LCDPosition(0, 1);
+			if (oldValue != value){
+				LCDPrintChar('*');
+			} else {
+				LCDPrintChar(' ');
+			}
+		}
+	}
+	return value;
+}
+
+void configureInt(const struct menuItem* list, int8_t count)
+{
+	int8_t i = 0;
   int8_t encoder;
   uint8_t btn;
-	uint8_t old_btn;
 	int16_t value;
 
-  old_btn = btn = PINB & (1 << PB0);
-
-  LCDClear();
-	LCDPosition(0, 0); LCDPrintString("Configuraton");
-	LCDPosition(0, 1); LCDPrintString("Editor");
-	_delay_ms(300);
-
-  memcpy_P(&currentItem, &list[i], sizeof(struct menuItem));
-  value = *currentItem.value;
-  printHeader(&currentItem);
-  printValue(&currentItem, value);
+	btn = 1; /* Значение для принудительной */
+	i = -1;  /* подгрузки пункта меню       */
+#ifdef __GNUC__
+	currentItem.value16 = NULL;
+#endif
 
   while(1){
-    btn = PINB & (1 << PB0);
-    if (old_btn != btn){
-      old_btn = btn;
-      _delay_ms(50);
-			if (btn == 0){
-        i++;
-        if (i >= MENU_COUNT){
-          /* Save to EEPROM */
-          i = 0;
-          //break;
-        }
+    if (btn){
+			i++;
+			if (i >= count){
+				/* Save to EEPROM */
+				i = 0;
+				break;
+			}
 
-        *currentItem.value = value;
+			if (currentItem.value16 != NULL)
+				if (currentItem.max > 255){
+					*currentItem.value16 = value;
+				} else {
+					*currentItem.value8 = (uint8_t)value;
+				}
 
-        memcpy_P(&currentItem, &list[i], sizeof(struct menuItem));
-        value = *currentItem.value;
-        printHeader(&currentItem);
-        printValue(&currentItem, value);
-      };
+			memcpy_P(&currentItem, &list[i], sizeof(struct menuItem));
+
+			printHeader(currentItem.name);
+			if (currentItem.max > 255){
+				value = *currentItem.value16;
+				printValue(&currentItem, value, 0);
+			} else {
+				value = *currentItem.value8;
+				printValue(&currentItem, value, 1);
+			}
     }
+
 		encoder = encoderAzGet();
 
     if (encoder){
       value += encoder;
       if (value < currentItem.min) value = currentItem.min;
       if (value > currentItem.max) value = currentItem.max;
-      printValue(&currentItem, value);
+			if (currentItem.max > 255){
+				printValue(&currentItem, value, 0);
+			} else {
+				printValue(&currentItem, value, 1);
+			}
     }
+
+		btn = encoderAzBtnGet();
   }
+}
+
+
+#ifdef __SDCC
+__code const char conf1_msg[] = "Configuraton";
+__code const char conf2_msg[] = "Editor";
+__code const char com_echo_msg[] = "COM port echo:";
+__code const char az_motor_invert_msg[] = "AZ motor invert:";
+__code const char az_enc_invert_msg[] = "AZ encoder inv:";
+__code const char az_enc_int_msg[] = "AZ encoder int:";
+__code const char el_enable_msg[] = "Elevation:";
+__code const char el_motor_invert_msg[] = "EL motor invert:";
+__code const char el_enc_invert_msg[] = "EL encoder inv:";
+__code const char el_enc_int_msg[] = "EL encoder int:";
+#else
+#define conf1_msg "Configuraton"
+#define conf2_msg "Editor"
+#define com_echo_msg "COM port echo:"
+#define az_motor_invert_msg "AZ motor invert:"
+#define az_enc_invert_msg "AZ encoder inv:"
+#define az_enc_int_msg "AZ encoder int:"
+#define el_enable_msg "Elevation:"
+#define el_motor_invert_msg "EL motor invert:"
+#define el_enc_invert_msg "EL encoder inv:"
+#define el_enc_int_msg "EL encoder int:"
+#endif
+
+void configure(void)
+{
+
+
+  LCDClear();
+  LCDPosition(0, 0);
+	LCDPrintString(conf1_msg);
+  LCDPosition(0, 1);
+	LCDPrintString(conf2_msg);
+	delay_hw_ms(2000);
+
+
+	configureInt(azList, AZ_COUNT);
+	cfgFlags.com_echo = configureFlag(com_echo_msg, cfgFlags.com_echo);
+  cfgFlags.az_motor_invert = configureFlag(az_motor_invert_msg, cfgFlags.az_motor_invert);
+  cfgFlags.az_enc_invert = configureFlag(az_enc_invert_msg, cfgFlags.az_enc_invert);
+  cfgFlags.az_enc_int = configureFlag(az_enc_int_msg, cfgFlags.az_enc_int);
+  cfgFlags.el_enable = configureFlag(el_enable_msg, cfgFlags.el_enable);
+	if (cfgFlags.el_enable){
+		configureInt(elList, EL_COUNT);
+		cfgFlags.el_motor_invert = configureFlag(el_motor_invert_msg, cfgFlags.el_motor_invert);
+		cfgFlags.el_enc_invert = configureFlag(el_enc_invert_msg, cfgFlags.el_enc_invert);
+		cfgFlags.el_enc_int = configureFlag(el_enc_int_msg, cfgFlags.el_enc_int);
+	}
+
 }
