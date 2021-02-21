@@ -1,25 +1,16 @@
 #include <stdio.h>
+#include "platform.h"
 #include "delay_hw.h"
 #include "encoder.h"
 #include "configure.h"
 #include "lcd.h"
 
-#ifdef __SDCC /* SDCC */
-/* SDCC для AT89S52 сам подставляет чтение   */
-/* из области FLASH                          */
-#define memcpy_P(x, y, z) (void)1
-#define currentItem list[i]
-
-#else /* AVR GCC */
-/* Для AVR GCC требуется самостоятельно      */
-/* считать данные из области FLASH           */
-#include <avr/pgmspace.h>
-#endif
-
-
 struct configAz cfgAz;
 struct configEl cfgEl;
 struct configFlags cfgFlags;
+
+//#define CONFIG_ENABLE
+#ifdef CONFIG_ENABLE
 
 struct menuItem{
 	char name[17]; /* 16 + end of string (0x00) */
@@ -31,13 +22,14 @@ struct menuItem{
 	};
 };
 
-#define AZ_COUNT 4
-#ifdef __SDCC /* SDCC */
-__code const struct menuItem azList[AZ_COUNT] =
-#else /* AVR GCC */
+#ifdef __SDCC
+#define currentItem list[i]
+#else
 struct menuItem currentItem __attribute__ ((section (".noinit")));
-const struct menuItem azList[AZ_COUNT] PROGMEM =
 #endif
+
+#define AZ_COUNT 4
+CODE_MEM_BEFORE const struct menuItem azList[AZ_COUNT] CODE_MEM_AFTER =
 	{
 	 {"AZ 360 imp count", 0, 32000, &cfgAz.count},
 	 {"AZ overlap pos:", 0, 360, &cfgAz.overlap_position},
@@ -47,12 +39,7 @@ const struct menuItem azList[AZ_COUNT] PROGMEM =
 
 
 #define EL_COUNT 4
-#ifdef __SDCC /* SDCC */
-__code const struct menuItem elList[EL_COUNT] =
-#else /* AVR GCC */
-struct menuItem currentItem __attribute__ ((section (".noinit")));
-const struct menuItem elList[EL_COUNT] PROGMEM =
-#endif
+CODE_MEM_BEFORE const struct menuItem elList[EL_COUNT] CODE_MEM_AFTER =
 	{
 	 {"EL 180 imp count", 0, 32000, &cfgEl.count},
 	 {"EL start:", 0, 180, .value8=&cfgEl.min},
@@ -204,30 +191,20 @@ void configureInt(const struct menuItem* list, int8_t count)
 __code const char conf1_msg[] = "Configuraton";
 __code const char conf2_msg[] = "Editor";
 __code const char com_echo_msg[] = "COM port echo:";
-__code const char az_motor_invert_msg[] = "AZ motor invert:";
-__code const char az_enc_invert_msg[] = "AZ encoder inv:";
 __code const char az_enc_int_msg[] = "AZ encoder int:";
 __code const char el_enable_msg[] = "Elevation:";
-__code const char el_motor_invert_msg[] = "EL motor invert:";
-__code const char el_enc_invert_msg[] = "EL encoder inv:";
 __code const char el_enc_int_msg[] = "EL encoder int:";
 #else
 #define conf1_msg "Configuraton"
 #define conf2_msg "Editor"
 #define com_echo_msg "COM port echo:"
-#define az_motor_invert_msg "AZ motor invert:"
-#define az_enc_invert_msg "AZ encoder inv:"
 #define az_enc_int_msg "AZ encoder int:"
 #define el_enable_msg "Elevation:"
-#define el_motor_invert_msg "EL motor invert:"
-#define el_enc_invert_msg "EL encoder inv:"
 #define el_enc_int_msg "EL encoder int:"
 #endif
 
 void configure(void)
 {
-
-
   LCDClear();
   LCDPosition(0, 0);
 	LCDPrintString(conf1_msg);
@@ -235,18 +212,13 @@ void configure(void)
 	LCDPrintString(conf2_msg);
 	delay_hw_ms(2000);
 
-
 	configureInt(azList, AZ_COUNT);
 	cfgFlags.com_echo = configureFlag(com_echo_msg, cfgFlags.com_echo);
-  cfgFlags.az_motor_invert = configureFlag(az_motor_invert_msg, cfgFlags.az_motor_invert);
-  cfgFlags.az_enc_invert = configureFlag(az_enc_invert_msg, cfgFlags.az_enc_invert);
   cfgFlags.az_enc_int = configureFlag(az_enc_int_msg, cfgFlags.az_enc_int);
   cfgFlags.el_enable = configureFlag(el_enable_msg, cfgFlags.el_enable);
 	if (cfgFlags.el_enable){
 		configureInt(elList, EL_COUNT);
-		cfgFlags.el_motor_invert = configureFlag(el_motor_invert_msg, cfgFlags.el_motor_invert);
-		cfgFlags.el_enc_invert = configureFlag(el_enc_invert_msg, cfgFlags.el_enc_invert);
 		cfgFlags.el_enc_int = configureFlag(el_enc_int_msg, cfgFlags.el_enc_int);
 	}
-
 }
+#endif

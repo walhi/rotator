@@ -8,34 +8,35 @@ void encoderHwInit()
   /* записать единицу в любой из пинов    */
   /* К портам 1-3 это не относится        */
 	P0 = 0xff;
+
+	/* Инициализация таймера 0 */
+	TMOD |= T0_M0; /* Mode 1 (16 bit) */
+	ET0 = 1;  /* Enable interrupt */
+	EA  = 1;  /* Enable global interrupt */
 }
 
-uint8_t encoderHwAzAGet()
+
+static uint8_t flag = 1;
+
+void timerReload()
 {
-	return P0_1;
+	TL0 = 0xff;
+	TH0 = 0xff;
+	TR0 = 1;
+	flag = TIMER_TIME;
 }
 
-uint8_t encoderHwAzBGet()
+
+uint8_t timerStatus()
 {
-  return P0_0;
+	return flag;
 }
 
-uint8_t encoderHwAzBtnGet()
+/* void Timer0_ISR() __interrupt TF0_VECTOR */
+void timer0Int()
 {
-  return P0_4;
-}
-
-uint8_t encoderHwElAGet()
-{
-  return P0_3;
-}
-
-uint8_t encoderHwElBGet()
-{
-  return P0_2;
-}
-
-uint8_t encoderHwElBtnGet()
-{
-  return P0_5;
+	flag--;
+	if (flag == 0){
+		TR0 = 0;
+	}
 }

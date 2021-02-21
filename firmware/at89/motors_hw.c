@@ -1,32 +1,12 @@
+#include <8052.h>
 #include "motors_hw.h"
 
 void motorsHwInit()
 {
+  P1 = 0xff;
+  P3 |= (1 << 6);
 }
 
-void motorAzEnable(void)
-{
-}
-
-void motorAzDisable(void)
-{
-}
-
-void motorAzR1Enable(void)
-{
-}
-
-void motorAzR1Disable(void)
-{
-}
-
-void motorAzR2Enable(void)
-{
-}
-
-void motorAzR2Disable(void)
-{
-}
 
 /* ------------------------------------------------- */
 

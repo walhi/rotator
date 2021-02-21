@@ -118,6 +118,9 @@ reboot:
 flash: $(TARGET).hex
 	$(AVRDUDE) -c avrftdi -p m16 -C ~/avrdude.conf -V -U flash:w:$(TARGET).hex
 
+reset:
+	$(AVRDUDE) -c avrftdi -p m16 -C ~/avrdude.conf
+
 flash-noverify: $(TARGET).hex
 	$(AVRDUDE) -p $(MCU_AVRDUDE) -c $(PROGRAMMER) -V $(AVRDUDE_SPEED_HIGH) -U flash:w:$(TARGET).hex
 

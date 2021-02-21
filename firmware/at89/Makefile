@@ -74,7 +74,10 @@ flash: $(PROJECT).hex
 	$(AVRDUDE) -c pinboard_invert -p 8052 -C ~/avrdude.conf -V -e -U flash:w:$(PROJECT).hex
 #	$(AVRDUDE) -c avrftdi -p 8052 -C ~/avrdude.conf -V -e -U flash:w:$(PROJECT).hex
 
-# ------------------ Tags ---------------------#
+# ------------------ Reset --------------------#
+reset:
+	$(AVRDUDE) -c pinboard_invert -p 8052 -C ~/avrdude.conf
+
 ETAGS?=etags
 .PHONY: TAGS tags
 TAGS:

@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-void GS232Parse(void);
+void GS232Parse(uint8_t mode);
 
 #endif

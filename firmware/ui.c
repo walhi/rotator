@@ -2,6 +2,7 @@
 #include "configure.h"
 #include "ui.h"
 #include "lcd.h"
+#include "rotate.h"
 
 /* Конфигурация устройства */
 extern struct configFlags cfgFlags;
@@ -20,6 +21,9 @@ extern enum workMode mode;
 /* Текущее направление движения */
 extern int8_t azimuthTick;
 
+/* Допустимые направления */
+extern struct dir dirAllowed;
+
 /* Локальные переменные */
 enum workMode oldMode = none;
 int16_t LCDAntAzimuth = 0x7fff;
@@ -34,20 +38,23 @@ void startupMessage()
 	LCDPosition(0, 1); LCDPrintString("RK3MXT Rotator");
 }
 
-
 /* Классический интерфейс */
-
-void oldPrintMode(void){
+void oldPrintMode(void)
+{
+	LCDNormal();
 	LCDPosition(0, 0);
 	if (mode == port){
 		LCDPrintString("PORT");
 	} else {
 		LCDPrintString(" MAN");
 	}
+	LCDReverse(); // числа выводятся в обратном порядке
 }
 
-void oldInit(void){
+void oldInit(void)
+{
 	LCDClear();
+	LCDNormal();
 	LCDPosition(0, 0);
 	if (cfgFlags.el_enable){
 		LCDPosition(4, 0);
@@ -64,19 +71,20 @@ void oldInit(void){
 	oldPrintMode();
 }
 
-
-void oldPrintTarget(void){
-	LCDPosition(13, 0);
-  /* TODO придумать условие, когда не выводить значение с порта */
+void oldPrintTarget(void)
+{
+	LCDPosition(15, 0);
   LCDPrintf("%3u", targetAzimuth);
 }
 
-void oldPrintAnt(void){
-	LCDPosition(13, 1);
-	LCDPrintf("%3u", antAzimuth);
+void oldPrintAnt(void)
+{
+	LCDPosition(15, 1);
+  LCDPrintf("%3u", antAzimuth);
 }
 
-void oldPrintUI(void){
+void oldPrintUI(void)
+{
   if (oldMode != mode){
     oldMode = mode;
 		oldPrintMode();
@@ -92,33 +100,85 @@ void oldPrintUI(void){
 }
 
 
-void newPrintUI(void){
-}
-
 /* Интерфейс с большими цифрами */
-
+#ifdef BIG_FONT
 void printBigAnt(int16_t value)
 {
-  static uint8_t LCDD1 = 0;
-  static uint8_t LCDD2 = 0;
-  static uint8_t LCDD3 = 0;
+  static uint8_t LCDD1 = 0xff;
+  static uint8_t LCDD2 = 0xff;
+  static uint8_t LCDD3 = 0xff;
   uint8_t d1 = value / 100;
   uint8_t d2 = value % 100 / 10;
   uint8_t d3 = value % 10;
   if (LCDD1 != d1){
     LCDD1 = d1;
-    LCDPrintBigDigit(d1, 7);
+		if (d1 != 0){
+			LCDPrintBigDigit(d1, 7);
+		} else {
+			LCDPrintBigDigit(' ', 7);
+		}
   }
   if (LCDD2 != d2){
     LCDD2 = d2;
-    LCDPrintBigDigit(d2, 10);
+		if (d1 != 0 || d2 != 0){
+			LCDPrintBigDigit(d2, 10);
+		} else {
+			LCDPrintBigDigit(' ', 10);
+		}
   }
   if (LCDD3 != d3){
     LCDD3 = d3;
     LCDPrintBigDigit(d3, 13);
   }
 }
+#endif
 
+void newPrintUI(void){
+	/* Режим работы */
+  if (oldMode != mode){
+    oldMode = mode;
+		LCDNormal();
+		LCDPosition(0, 0);
+		if (mode == port){
+			LCDPrintString("Port  ");
+		} else {
+			LCDPrintString("Manual");
+		}
+  }
+
+	/* Целевое значение азимута */
+  if (LCDTargetAzimuth != targetAzimuth){
+    LCDTargetAzimuth = targetAzimuth;
+		LCDReverse(); // числа выводятся в обратном порядке
+    LCDPosition(5, 1);
+
+		if (dirAllowed.right_overlap || dirAllowed.left_overlap)
+			LCDPrintChar('!');
+		else
+			LCDPrintChar(' ');
+
+    if (dirAllowed.right)
+      LCDPrintChar(dirAllowed.right_overlap?')':'>');
+    else
+      LCDPrintChar(']');
+
+		LCDPrint(targetAzimuth);
+
+		if (dirAllowed.left)
+      LCDPrintChar(dirAllowed.left_overlap?'(':'<');
+    else
+      LCDPrintChar('[');
+  }
+
+	/* Текущее положение */
+	if (LCDAntAzimuth != antAzimuth){
+		LCDAntAzimuth = antAzimuth;
+		LCDNormal();
+#ifdef BIG_FONT
+		printBigAnt(antAzimuth);
+#endif
+	}
+}
 
 void printUI(){
   if (cfgFlags.ui_use_old){
@@ -131,5 +191,7 @@ void printUI(){
 void initUI(){
   if (cfgFlags.ui_use_old){
     oldInit();
-  }
+  } else {
+		LCDClear();
+	}
 }

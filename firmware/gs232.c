@@ -21,10 +21,11 @@ uint16_t parse(char* buf)
 /* Protocol Yeasu GS-232
  * https://www.yaesu.com/downloadFile.cfm?FileID=820&FileCatID=155&FileName=GS232A.pdf&FileContentType=application%2Fpdf
  */
-void GS232Parse()
+void GS232Parse(uint8_t mode)
 {
   char* buf = UARTGetBuf();
   uint8_t len = UARTGetLen();
+  uint8_t d1, d2, d3;
 
 	/* Go to start command (A-Z char) */
 	while (len){
@@ -34,6 +35,8 @@ void GS232Parse()
 	}
 
   if (!len || buf[0] == 0) return;
+
+  if (mode == 0 && !(buf[0] == 'C' || buf[0] == 'B')) return;
 
 	switch(buf[0]){
 	case 'R':
@@ -71,14 +74,33 @@ void GS232Parse()
 		break;
 	case 'C':
 		/* Return current azimuth angle in the form “+0nnn” degrees. */
+    d1 = antAzimuth / 100 + '0';
+    d2 = antAzimuth % 100 / 10 + '0';
+    d3 = antAzimuth % 10 + '0';
+    UARTSendChar('+');
+    UARTSendChar('0');
+    UARTSendChar(d1);
+    UARTSendChar(d2);
+    UARTSendChar(d3);
 		if (buf[1] == '2'){
 			/* Return azimuth and elevation (“+0aaa+0eee”) */
-
+      UARTSendChar('+');
+      UARTSendChar('0');
+      UARTSendChar(antElevation / 100 + '0');
+      UARTSendChar(antElevation % 100 / 10 + '0');
+      UARTSendChar(antElevation % 10 + '0');
 		}
+    UARTSendChar('\r');
 		break;
 	case 'B':
-		/* Return current azimuth (elevation) angle in the form “+0nnn” degrees. */
-		break;
+		/* Return current elevation angle in the form “+0nnn” degrees. */
+    UARTSendChar('+');
+    UARTSendChar('0');
+    UARTSendChar(antElevation / 100 + '0');
+    UARTSendChar(antElevation % 100 / 10 + '0');
+    UARTSendChar(antElevation % 10 + '0');
+		UARTSendChar('\r');
+    break;
 	case 'M':
 		/* Turn to aaa degrees azimuth. */
 		targetAzimuth = parse(&buf[1]);

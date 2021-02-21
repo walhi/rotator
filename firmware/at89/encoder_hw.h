@@ -2,19 +2,45 @@
 #define ENCODER_HW_H
 
 #include <stdint.h>
+#include <8052.h>
+
+#define TIMER_TIME 15
 
 void encoderHwInit(void);
 
-uint8_t encoderHwAzAGet(void);
+inline uint8_t encoderHwAzAGet()
+{
+	return P0_1;
+}
 
-uint8_t encoderHwAzBGet(void);
+inline uint8_t encoderHwAzBGet()
+{
+  return P0_0;
+}
 
-uint8_t encoderHwAzBtnGet(void);
+inline uint8_t encoderHwAzBtnGet()
+{
+  return P0_4;
+}
 
-uint8_t encoderHwElAGet(void);
+inline uint8_t encoderHwElAGet()
+{
+  return P0_3;
+}
 
-uint8_t encoderHwElBGet(void);
+inline uint8_t encoderHwElBGet()
+{
+  return P0_2;
+}
 
-uint8_t encoderHwElBtnGet(void);
+inline uint8_t encoderHwElBtnGet()
+{
+  return P0_5;
+}
 
+void timerReload(void);
+
+uint8_t timerStatus(void);
+
+void timer0Int(void);
 #endif

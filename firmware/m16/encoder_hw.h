@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "signals.h"
 
+#define TIMER_TIME 15
+
 inline void encoderHwInit(void)
 {
   ENC_AZ_A_DDR_REG &= ~ENC_AZ_A_PIN;
@@ -54,5 +56,10 @@ inline uint8_t encoderHwElBtnGet(void)
 {
   return (ENC_EL_BTN_PIN_REG & ENC_EL_BTN_PIN);
 }
+
+void timerReload(void);
+
+uint8_t timerStatus(void);
+
 
 #endif

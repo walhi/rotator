@@ -1,22 +1,42 @@
 #ifndef MOTORS_HW_H
 #define MOTORS_HW_H
 
+#include <8052.h>
+
 
 void motorsHwInit(void);
 
 /* ------------------------------------------------- */
 
-void motorAzEnable(void);
+inline void motorAzEnable(void)
+{
+  P3_6 = 1;
+}
 
-void motorAzDisable(void);
+inline void motorAzDisable(void)
+{
+  P3_6 = 0;
+}
 
-void motorAzR1Enable(void);
+inline void motorAzR1Enable(void)
+{
+  P1_4 = 1;
+}
 
-void motorAzR1Disable(void);
+inline void motorAzR1Disable(void)
+{
+  P1_4 = 0;
+}
 
-void motorAzR2Enable(void);
+inline void motorAzR2Enable(void)
+{
+  P1_5 = 1;
+}
 
-void motorAzR2Disable(void);
+inline void motorAzR2Disable(void)
+{
+  P1_5 = 0;
+}
 
 /* ------------------------------------------------- */
 

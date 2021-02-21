@@ -2,12 +2,19 @@
 #define LCD_H
 
 #include <stdint.h>
+#include "lcd_hw.h"
 
-#ifdef __SDCC
-#define LCDPrintf printf_fast
-#else
-void LCDPrintf (const char * format, ...);
-#endif
+inline void LCDReverse(void){
+	LCDWrite(0x04, 0); /* Вывод в обратном порядке */
+}
+
+inline void LCDNormal(void){
+	LCDWrite(0x06, 0); /* Вывод в обратном порядке */
+}
+
+void LCDPrint (int16_t value);
+
+void LCDPrintf (const char * format, int16_t value);
 
 void LCDInit(void);
 
@@ -19,8 +26,13 @@ void LCDClear(void);
 
 void LCDPrintString(char* str);
 
-void LCDPrintChar(char c);
+inline void LCDPrintChar(char c){
+  LCDWrite(c, 1);
+}
 
+#define BIG_FONT
+#ifdef BIG_FONT
 void LCDPrintBigDigit(uint8_t digit, uint8_t pos);
+#endif
 
 #endif
