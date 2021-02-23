@@ -21,19 +21,23 @@ OBJ_PATH = obj
 
 INCLUDE = -I . -I ..
 CFLAGS = -mmcs51 --std-sdcc99 --model-small -c $(INCLUDE) --disable-warning 126
+#CFLAGS += -DF_CPU=24000000U
 #CFLAGS += --opt-code-size
 LDFLAGS = --iram-size 256 --xram-size 0 --code-size 8192
 #LDFLAGS += --stack-auto
 
 PROJECT_SRC  = $(PROJECT).c
+PROJECT_SRC += clock.c
+PROJECT_SRC += delay_hw.c
+PROJECT_SRC += i2c.c eeprom.c
 PROJECT_SRC += ui.c
 PROJECT_SRC += calibration.c
 PROJECT_SRC += configure.c
-PROJECT_SRC += motors.c motors_hw.c rotate_hw.c rotate.c
+PROJECT_SRC += motors.c motors_hw.c
+PROJECT_SRC += rotate_hw.c rotate.c
 PROJECT_SRC += encoder.c encoder_hw.c
 PROJECT_SRC += lcd.c lcd_hw.c
 PROJECT_SRC += uart.c gs232.c
-PROJECT_SRC += delay_hw.c
 
 OBJECTS = $(patsubst %.c, $(OBJ_PATH)/%.rel, $(PROJECT_SRC))
 
@@ -50,7 +54,7 @@ $(OBJ_PATH)/%.rel: %.c Makefile
 
 $(PROJECT).ihx: $(OBJECTS)
 	@echo "Linking $@"
-	$(CC) $(LDFLAGS) $^
+	@$(CC) $(LDFLAGS) $^
 
 $(PROJECT).hex:	$(PROJECT).ihx
 	@echo "Pack $@"

@@ -57,16 +57,9 @@ static void uintPrint(int16_t val, int8_t len)
 	}
 }
 
-void LCDPrint (int16_t value)
+void LCDPrint(int16_t value, uint8_t digit)
 {
-	uintPrint(value, 3);
-}
-
-void LCDPrintf (const char * format, int16_t value)
-{
-	LCDWrite(0x04, 0); /* Вывод числа в обратном порядке */
-	uintPrint(value, 3);
-	LCDWrite(0x06, 0); /* Возврат в предыдущий режим */
+	uintPrint(value, digit);
 }
 
 #ifdef BIG_FONT

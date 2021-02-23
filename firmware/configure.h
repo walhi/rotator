@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-
 struct configAz {
   int16_t count;
   int16_t overlap_position;
@@ -21,9 +20,13 @@ struct configEl {
 struct configFlags {
   unsigned com_echo: 1;
   unsigned ui_use_old: 1;
-  unsigned az_enc_int: 1;
   unsigned el_enable: 1;
-  unsigned el_enc_int: 1;
+};
+
+struct config {
+	struct configAz Az;
+  struct configEl El;
+  struct configFlags Flags;
 };
 
 void configure(void);

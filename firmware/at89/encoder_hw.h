@@ -37,10 +37,4 @@ inline uint8_t encoderHwElBtnGet()
 {
   return P0_5;
 }
-
-void timerReload(void);
-
-uint8_t timerStatus(void);
-
-void timer0Int(void);
 #endif

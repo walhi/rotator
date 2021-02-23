@@ -7,11 +7,11 @@ void encoderInit(void);
 
 int8_t encoderAzGet(void);
 
-int8_t encoderAzBtnGet(void);
+int8_t encoderAzBtnGet(uint8_t cont);
 
 int8_t encoderElGet(void);
 
-int8_t encoderElBtnGet(void);
+int8_t encoderElBtnGet(uint8_t cont);
 
 
 #endif

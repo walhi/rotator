@@ -3,7 +3,7 @@
 void delay_hw_ms(uint16_t value)
 {
   while(value){
-    delay_hw_us(1000);
+    delay_hw_us(250);
     value--;
   }
 }

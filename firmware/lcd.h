@@ -12,9 +12,7 @@ inline void LCDNormal(void){
 	LCDWrite(0x06, 0); /* Вывод в обратном порядке */
 }
 
-void LCDPrint (int16_t value);
-
-void LCDPrintf (const char * format, int16_t value);
+void LCDPrint(int16_t value, uint8_t digit);
 
 void LCDInit(void);
 

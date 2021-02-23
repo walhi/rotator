@@ -2,24 +2,31 @@
 #include "motors.h"
 #include "motors_hw.h"
 
-int8_t azimuthTick = 0;
-int8_t elevationTick = 0;
-
 void motorsInit()
 {
 	motorsHwInit();
+	motorAzDisable();
+	motorAzR1Disable();
+	motorAzR2Disable();
+}
+
+int8_t motorAzTick()
+{
+	if (motorAzR1Status()) return -1;
+	if (motorAzR2Status()) return 1;
+	return 0;
 }
 
 void motorAzLeft()
 {
-  azimuthTick = -1;
+	motorAzR2Disable();
   motorAzR1Enable();
 	motorAzEnable();
 }
 
 void motorAzRight()
 {
-  azimuthTick = 1;
+	motorAzR1Disable();
   motorAzR2Enable();
 	motorAzEnable();
 }
@@ -27,22 +34,27 @@ void motorAzRight()
 
 void motorAzStop()
 {
-  azimuthTick = 0;
 	motorAzDisable();
 	motorAzR1Disable();
 	motorAzR2Disable();
 }
 
+
+int8_t motorElTick()
+{
+	if (motorElR1Status()) return 1;
+	if (motorElR2Status()) return -1;
+	return 0;
+}
+
 void motorElUp()
 {
-  elevationTick = 1;
   motorElR1Enable();
 	motorElEnable();
 }
 
 void motorElDown()
 {
-  elevationTick = -1;
   motorElR2Enable();
 	motorElEnable();
 }
@@ -50,7 +62,6 @@ void motorElDown()
 
 void motorElStop()
 {
-  elevationTick = 0;
 	motorElDisable();
 	motorElR1Disable();
 	motorElR2Disable();

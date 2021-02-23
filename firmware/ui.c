@@ -5,7 +5,8 @@
 #include "rotate.h"
 
 /* Конфигурация устройства */
-extern struct configFlags cfgFlags;
+extern struct config cfg;
+//extern struct configFlags cfgFlags;
 
 /* Текущее положение антенны */
 extern int16_t antAzimuth;
@@ -26,10 +27,10 @@ extern struct dir dirAllowed;
 
 /* Локальные переменные */
 enum workMode oldMode = none;
-int16_t LCDAntAzimuth = 0x7fff;
-int16_t LCDAntElevation = 0x7fff;
-int16_t LCDTargetAzimuth = 0x7fff;
-int16_t LCDTargetElevation = 0x7fff;
+static int16_t LCDAntAzimuth = 0x7fff;
+static int16_t LCDAntElevation = 0x7fff;
+static int16_t LCDTargetAzimuth = 0x7fff;
+static int16_t LCDTargetElevation = 0x7fff;
 
 void startupMessage()
 {
@@ -56,7 +57,7 @@ void oldInit(void)
 	LCDClear();
 	LCDNormal();
 	LCDPosition(0, 0);
-	if (cfgFlags.el_enable){
+	if (cfg.Flags.el_enable){
 		LCDPosition(4, 0);
 		LCDPrintString(" AZ    EL");
 		LCDPosition(4, 1);
@@ -73,14 +74,28 @@ void oldInit(void)
 
 void oldPrintTarget(void)
 {
-	LCDPosition(15, 0);
-  LCDPrintf("%3u", targetAzimuth);
+	if (cfg.Flags.el_enable){
+		LCDPosition(9, 0);
+		LCDPrint(targetAzimuth, 3);
+		LCDPosition(15, 0);
+		LCDPrint(targetElevation, 3);
+	} else {
+		LCDPosition(15, 0);
+		LCDPrint(targetAzimuth, 3);
+	}
 }
 
 void oldPrintAnt(void)
 {
-	LCDPosition(15, 1);
-  LCDPrintf("%3u", antAzimuth);
+	if (cfg.Flags.el_enable){
+		LCDPosition(9, 1);
+		LCDPrint(antAzimuth, 3);
+		LCDPosition(15, 1);
+		LCDPrint(antElevation, 3);
+	} else {
+		LCDPosition(15, 1);
+		LCDPrint(antAzimuth, 3);
+	}
 }
 
 void oldPrintUI(void)
@@ -133,6 +148,8 @@ void printBigAnt(int16_t value)
 }
 #endif
 
+extern int16_t tmpTargetAzimuth;
+extern uint8_t calcDirMode;
 void newPrintUI(void){
 	/* Режим работы */
   if (oldMode != mode){
@@ -162,7 +179,7 @@ void newPrintUI(void){
     else
       LCDPrintChar(']');
 
-		LCDPrint(targetAzimuth);
+		LCDPrint(targetAzimuth, 3);
 
 		if (dirAllowed.left)
       LCDPrintChar(dirAllowed.left_overlap?'(':'<');
@@ -181,7 +198,7 @@ void newPrintUI(void){
 }
 
 void printUI(){
-  if (cfgFlags.ui_use_old){
+  if (cfg.Flags.ui_use_old){
     oldPrintUI();
   } else {
     newPrintUI();
@@ -189,7 +206,7 @@ void printUI(){
 }
 
 void initUI(){
-  if (cfgFlags.ui_use_old){
+  if (cfg.Flags.ui_use_old){
     oldInit();
   } else {
 		LCDClear();

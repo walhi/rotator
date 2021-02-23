@@ -15,4 +15,6 @@ uint8_t UARTGetLen(void);
 
 uint8_t UARTStatus(void);
 
+void UARTInt(void);
+
 #endif

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include "clock.h"
 #include "lcd.h"
 #include "motors.h"
 #include "ui.h"
@@ -11,11 +12,14 @@
 #include "delay_hw.h"
 #include "rotate.h"
 #include "rotate_hw.h"
+#include "eeprom.h"
+#include "i2c.h"
 
 /* Конфигурация */
-extern struct configAz cfgAz;
-extern struct configEl cfgEl;
-extern struct configFlags cfgFlags;
+extern struct config cfg;
+//extern struct configAz cfgAz;
+//extern struct configEl cfgEl;
+//extern struct configFlags cfgFlags;
 
 /* Текущее положение антенны в градусах */
 int16_t antAzimuth = 140;
@@ -42,7 +46,7 @@ struct dir dirAllowed;
 /* Переменные для обработки зоны overlap */
 static int16_t virtualZero;
 static int16_t tmpAntAzimuth;
-static int16_t tmpTargetAzimuth;
+int16_t tmpTargetAzimuth;
 
 
 /*=========================================*/
@@ -65,24 +69,17 @@ static void azConvert(void)
   } else {
     if (dirAllowed.wire_right == 0 && dirAllowed.wire_left == 0){
       /* Начали движение от нуля, все просто */
-      if (tmpAntAzimuth > 0)
+			/* Иные случаи игнорируем */
+      if (tmpAntAzimuth > 0){
         dirAllowed.wire_left = 1;
-      else
+			} else{
         dirAllowed.wire_right = 1;
-    } else {
-      /* TODO                                     */
-      /* Переход через ноль будет обязательно, но */
-      /* Как задать стартовое значение?           */
-      if (tmpAntAzimuth != 180 && tmpAntAzimuth != -180){
-        if (tmpAntAzimuth < 0)
-          dirAllowed.wire_right = 1;
-        else
-          dirAllowed.wire_left = 1;
-      }
+			}
     }
   }
 }
 
+uint8_t calcDirMode;
 
 /*=========================================*/
 /* Расчет допустимых направлений           */
@@ -93,15 +90,18 @@ static void calcDir(void)
 		/* В overlap зону можно заходить против часовой стрелки */
 		dirAllowed.right_overlap = 0;
 		dirAllowed.right = 1;
-		if (tmpTargetAzimuth == (180 - cfgAz.overlap_size)){
+		if (tmpTargetAzimuth == (180 - cfg.Az.overlap_size)){
+			calcDirMode = 1;
 			/* Дошли до края overlap зоны */
 			dirAllowed.left = 0;
 			dirAllowed.left_overlap = 1;
 		} else if ((tmpTargetAzimuth < 0) && tmpTargetAzimuth > -180){
+			calcDirMode = 2;
 			/* Ещё не вошли в overlap зону */
 			dirAllowed.left = 1;
 			dirAllowed.left_overlap = 0;
 		} else {
+			calcDirMode = 3;
 			/* Внутри overlap зоны */
 			dirAllowed.left = 1;
 			dirAllowed.left_overlap = 1;
@@ -111,20 +111,24 @@ static void calcDir(void)
 		/* В overlap зону можно заходить по часовой стрелке */
 		dirAllowed.left_overlap = 0;
 		dirAllowed.left = 1;
-		if (tmpTargetAzimuth == (-180 + cfgAz.overlap_size)){
+		if (tmpTargetAzimuth == (-180 + cfg.Az.overlap_size)){
+			calcDirMode = 4;
 			/* Дошли до края overlap зоны */
 			dirAllowed.right = 0;
 			dirAllowed.right_overlap = 0;
 		} else if ((tmpTargetAzimuth > 0) && tmpTargetAzimuth < 180){
+			calcDirMode = 5;
 			/* Ещё не вошли в overlap зону */
 			dirAllowed.right = 1;
 			dirAllowed.right_overlap = 0;
 		} else {
+			calcDirMode = 6;
 			/* Внутри overlap зоны */
 			dirAllowed.right = 1;
 			dirAllowed.right_overlap = 1;
 		}
 	} else {
+		calcDirMode = 7;
 		/* Антенна находится на виртуальном нуле */
 		/* Разрешено использовать любое направление */
 		dirAllowed.right = 1;
@@ -138,22 +142,18 @@ extern int8_t azimuthTick;
 int main (void)
 {
 	int8_t step;
-	uint8_t modeBtn;
 
 	/* Задержка для включения LCD экрана. А нужна ли? */
   delay_hw_ms(50);
 
   /* Инициализация железа для работы с EEPROM */
+	I2C_Init();
 
 	/* Чтение конфигурации из EEPROM */
-  //cfgAz.count = 576;
-  cfgAz.count = 3600;
-  cfgAz.overlap_position = 180;
-  cfgAz.overlap_size = 10;
-  cfgFlags.ui_use_old = 0;
-	cfgFlags.com_echo = 0;
+	readConfig();
 
 	/* Инициализация остального железа */
+	clockInit();
   LCDInit();
   motorsInit();
   encoderInit();
@@ -165,70 +165,54 @@ int main (void)
   motorElStop();
 
 	/* Чтение положения из EEPROM */
-  targetAzimuth = antAzimuth;
+  targetAzimuth = 170;
+  //targetAzimuth = antAzimuth;
 
   /* Расчет виртуального нуля             */
 	/* 180 - overlap pos                    */
-	if (cfgAz.overlap_position >= 180){
-		virtualZero = cfgAz.overlap_position - 180;
+	if (cfg.Az.overlap_position >= 180){
+		virtualZero = cfg.Az.overlap_position - 180;
 	} else {
-		virtualZero = cfgAz.overlap_position + 180;
+		virtualZero = cfg.Az.overlap_position + 180;
 	}
 	virtualZero = (virtualZero > 180)?(virtualZero - 360):virtualZero;
 
-  azConvert();
-
   startupMessage();
-
 	delay_hw_ms(300);
 
 	/*=========================================*/
 	/* Вход в режим калибровки азимута         */
-	if (0 && encoderAzBtnGet() && !encoderElBtnGet()){
+	if (encoderAzBtnGet(1) && !encoderElBtnGet(1)){
 		calibrateAz();
 	}
 
 	/*=========================================*/
 	/* Вход в режим калибровки элевации        */
-	if (0 && cfgFlags.el_enable && !encoderAzBtnGet() && encoderElBtnGet()){
+	if (cfg.Flags.el_enable && !encoderAzBtnGet(1) && encoderElBtnGet(1)){
 		calibrateEl();
 	}
 
 	/*=========================================*/
 	/* Вход в режим настройки                  */
-	if (0 && encoderAzBtnGet() && encoderElBtnGet()){
-		/* configure(); */
+	if (encoderAzBtnGet(1) && encoderElBtnGet(1)){
+		configure();
 	}
 
 
+	azConvert();
 	calcDir();
 
 	mode = port;
 
-
 	initUI();
 	printUI();
 
-	int16_t loop_az;
-	int16_t loop_target_az;
-	uint8_t ggg, hhh;
+	struct timer actionTimer;
 
   while(1){
-		ggg = 0;
-		hhh = 0;
-		if (loop_az != antAzimuth){
-			loop_az = antAzimuth;
-			ggg = 1;
-		}
-		if (loop_target_az != targetAzimuth){
-			loop_target_az = targetAzimuth;
-			hhh = 1;
-		}
-
 		/*=========================================*/
 		/* Смена режимов работы                    */
-		modeBtn = encoderElBtnGet();
-    if (modeBtn){
+    if (encoderElBtnGet(0)){
       if (mode == port){
 				mode = manual;
         targetAzimuth = antAzimuth;
@@ -238,13 +222,6 @@ int main (void)
     }
 
 
-		/*=========================================*/
-		/* Обработка зоны overlap                  */
-		azConvert();
-
-		if (hhh){
-			calcDir();
-		}
 
     /*=========================================*/
 		/* Логика выбранного режима                */
@@ -255,49 +232,72 @@ int main (void)
 			step = encoderAzGet();
       if (step){
         if (((step > 0) && dirAllowed.right) || ((step < 0) && dirAllowed.left)){
-          targetAzimuth += step;
-          /* TODO не позволять ускорению вылезти за overlap zone */
+					timerReload(&actionTimer, 2000);
+					targetAzimuth += step;
           if (targetAzimuth >= 360) targetAzimuth -= 360;
           if (targetAzimuth < 0) targetAzimuth += 360;
-        }
+        } else {
+					step = 0;
+				}
       }
     }
+
+		/*=========================================*/
+		/* Обработка зоны overlap                  */
+		azConvert();
+
+		if (step){ /* Целевое значение менялось */
+			/* TODO: а если с порта поменялось? */
+			calcDir();
+		}
 
 
 		/*=========================================*/
 		/* Перевод координат "энкодера" в градусы  */
-		antAzimuth = ((360 << 4) / cfgAz.count * antAzimuthPos) >> 4; /* сдвиг для "увеличения точности" */
-		antElevation = ((360 << 4) / cfgEl.count * antElevationPos) >> 4; /* сдвиг для "увеличения точности" */
+		antAzimuth = ((360 << 4) / cfg.Az.count * antAzimuthPos) >> 4; /* сдвиг для "увеличения точности" */
+		if (cfg.Flags.el_enable){
+			antElevation = ((360 << 4) / cfg.El.count * antElevationPos) >> 4; /* сдвиг для "увеличения точности" */
+		}
 
 		/*=========================================*/
 		/* Поворот антенны                         */
 		if (targetAzimuth != antAzimuth){
-			/* Перевод градусов в координаты "энкодера" */
-			targetAzimuthPos = ((((360 << 4) / cfgAz.count) * targetAzimuth) >> 4); /* сдвиг для "увеличения точности" */
-			/* Движение */
-			if (tmpAntAzimuth < tmpTargetAzimuth){
-				motorAzStop();
-				motorAzRight();
-			} else {
-				motorAzStop();
-				motorAzLeft();
+			/* Задержка начала движения при изменении */
+			/* Целевого значения вручную */
+			if (mode == port || timerCheck(&actionTimer)){
+				/* Перевод градусов в координаты "энкодера" */
+				targetAzimuthPos = ((((360 << 4) / cfg.Az.count) * targetAzimuth) >> 4); /* сдвиг для "увеличения точности" */
+
+				if (tmpAntAzimuth < tmpTargetAzimuth){
+					/* Проверка на короткий путь в overlap зону */
+					if (tmpAntAzimuth < 0 && tmpTargetAzimuth > (180 - cfg.Az.overlap_size)){
+						motorAzLeft();
+					} else {
+						if (tmpTargetAzimuth < 0){
+							/* Выход из overlap зоны */
+							motorAzLeft();
+						} else {
+							/* Идем по длинному пути */
+							motorAzRight();
+						}
+					}
+				} else {
+					/* Проверка на короткий путь в overlap зону */
+					if (tmpAntAzimuth > 0 && tmpTargetAzimuth < (-180 + cfg.Az.overlap_size)){
+						motorAzRight();
+					} else {
+						if (tmpTargetAzimuth < 0){
+							/* Выход из overlap зоны */
+							motorAzRight();
+						} else {
+							/* Идем по длинному пути */
+							motorAzLeft();
+						}
+					}
+				}
 			}
 		} else {
 			motorAzStop();
-		}
-
-		if (ggg){
-			if (azimuthTick > 0)
-				UARTSendChar('>');
-			else if (azimuthTick < 0)
-				UARTSendChar('<');
-			else
-				UARTSendChar('|');
-			UARTSendChar(antAzimuthPos / 100 + '0');
-			UARTSendChar(antAzimuthPos % 100 / 10 + '0');
-			UARTSendChar(antAzimuthPos % 10 + '0');
-			UARTSendChar('\r');
-			UARTSendChar('\n');
 		}
 
 		/*=========================================*/

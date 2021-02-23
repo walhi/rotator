@@ -5,11 +5,11 @@
 #include "configure.h"
 
 /* Конфигурация устройства */
-extern struct configAz cfgAz;
-extern struct configEl cfgEl;
+extern struct config cfg;
+//extern struct configAz cfgAz;
+//extern struct configEl cfgEl;
 
 /* Направление движения */
-extern int8_t azimuthTick;
 extern int8_t elevationTick;
 
 /* Целевое значение положения */
@@ -25,10 +25,11 @@ void rotateInit(){
 }
 
 void azimuthImpulse(){
-  if (azimuthTick){
-		antAzimuthPos += azimuthTick;
-    if (antAzimuthPos >= cfgAz.count) antAzimuthPos -= cfgAz.count;
-    if (antAzimuthPos < 0) antAzimuthPos += cfgAz.count;
+	int8_t tmp = motorAzTick();
+  if (tmp){
+		antAzimuthPos += tmp;
+    if (antAzimuthPos >= cfg.Az.count) antAzimuthPos -= cfg.Az.count;
+    if (antAzimuthPos < 0) antAzimuthPos += cfg.Az.count;
     if (antAzimuthPos == targetAzimuthPos){
       /* Целевое положение достигнуто. Можно остановиться. */
       /* TODO что делать с движение по инерции? */
@@ -41,10 +42,11 @@ void azimuthImpulse(){
 
 void elevationImpulse()
 {
-  if (elevationTick){
-		antElevationPos += elevationTick;
-    if (antElevationPos >= cfgEl.count) antElevationPos -= cfgEl.count;
-    if (antElevationPos < 0) antElevationPos += cfgEl.count;
+	uint8_t tick = motorElTick();
+  if (tick){
+		antElevationPos += tick;
+    if (antElevationPos >= cfg.El.count) antElevationPos -= cfg.El.count;
+    if (antElevationPos < 0) antElevationPos += cfg.El.count;
     if (antElevationPos == targetElevationPos){
       /* Целевое положение достигнуто. Можно остановиться. */
       /* TODO что делать с движение по инерции? */

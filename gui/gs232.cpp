@@ -17,8 +17,35 @@ gs232::gs232()
         delete m_pSerialPort;
         m_pSerialPort = nullptr;
     }
+    timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, &gs232::update);
+    //timer->start(1000);
 }
 
+void gs232::update()
+{
+    qDebug() << "update";
+
+    QByteArray sendData;
+    sendData.append('C');
+    sendData.append(13);
+    m_pSerialPort->write(sendData);
+
+    QByteArray datas;
+    while(datas.length() < 5){
+        if(!m_pSerialPort->waitForReadyRead(1000)){ //block until new data arrives
+            qDebug() << "error: " << m_pSerialPort->errorString();
+            break;
+        } else {
+            qDebug() << "New data available: " << m_pSerialPort->bytesAvailable();
+            datas.append(m_pSerialPort->readAll());
+            qDebug() << datas;
+            int value = QString(datas).split("+")[1].toInt();
+            qDebug() << "Value: " << value;
+            emit positionUpdate(value);
+        }
+    }
+}
 
 void gs232::go(int value)
 {
@@ -34,6 +61,9 @@ void gs232::go(int value)
     qDebug() << "sendData: " << sendData;
 
 }
+
+
+
 void gs232::stop()
 {
     QByteArray sendData;

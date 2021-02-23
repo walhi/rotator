@@ -15,6 +15,9 @@ int8_t encoderAzGet()
 {
 	static uint8_t  prevNextCode = 0;
 	static uint16_t store = 0;
+  static int8_t oldDir = 0;
+  static int8_t tick = 1;
+  int8_t dir = 0;
 
   prevNextCode <<= 2;
   if (encoderHwAzAGet()) prevNextCode |= 0x02;
@@ -24,11 +27,12 @@ int8_t encoderAzGet()
 	if ((rot_enc_table >> prevNextCode) & 0x01) {
 		store <<= 4;
 		store |= prevNextCode;
-		if ((store&0xff)==0x2b) return -1;
-		if ((store&0xff)==0x17) return 1;
+		if ((store & 0xff) == 0x2b) dir = -1;
+		if ((store & 0xff) == 0x17) dir = 1;
 	}
 
-  return 0;
+
+	return dir;
 }
 
 
@@ -52,7 +56,7 @@ int8_t encoderElGet()
   return 0;
 }
 
-int8_t encoderAzBtnGet()
+int8_t encoderAzBtnGet(uint8_t cont)
 {
   static uint8_t encoderAzBtn = 1; /* extern pull up */
 	uint8_t state = encoderHwAzBtnGet();
@@ -61,16 +65,22 @@ int8_t encoderAzBtnGet()
 		delay_hw_ms(10);
 		if (state == 0) return 1;
 	}
+	if (cont){
+		if (state == 0) return 1;
+	}
 	return 0;
 }
 
-int8_t encoderElBtnGet()
+int8_t encoderElBtnGet(uint8_t cont)
 {
   static uint8_t encoderElBtn = 1; /* extern pull up */
-	uint8_t state = encoderHwAzBtnGet();
+	uint8_t state = encoderHwElBtnGet();
 	if (state != encoderElBtn){
 		encoderElBtn = state;
 		delay_hw_ms(10);
+		if (state == 0) return 1;
+	}
+	if (cont){
 		if (state == 0) return 1;
 	}
 	return 0;

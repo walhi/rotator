@@ -1,6 +1,7 @@
 #include "i2c.h"
 
 #include "delay_hw.h"
+#define delay_hw_us(x) {__asm nop __endasm;}
 
 #define SCL_PIN P1_2
 #define SDA_PIN P1_3
@@ -23,6 +24,9 @@ void I2C_Init(void)
 		i2c_Clock();
 		I2C_Stop();
 	}
+	delay_hw_us(1);
+	SDA_OUT;
+	SDA_PIN = 1;
 }
 
 void I2C_Start(void)
@@ -30,7 +34,7 @@ void I2C_Start(void)
 	SDA_OUT;
 	SDA_PIN = 1;
 	SCL_PIN = 1;
-	delay_hw_us(1);
+	delay_hw_us(5);
 	SDA_PIN = 0;
 	delay_hw_us(1);
 	SCL_PIN = 0;
@@ -38,9 +42,10 @@ void I2C_Start(void)
 
 void I2C_Stop(void)
 {
+	SDA_OUT;
+	SDA_PIN = 0;
 	SCL_PIN = 1;
 	delay_hw_us(1);
-	SDA_OUT;
 	SDA_PIN = 1;
 }
 
@@ -61,6 +66,8 @@ uint8_t I2C_Write(uint8_t data)
 	delay_hw_us(1);
 	i = SDA_PIN;
 	SCL_PIN = 0;
+	SDA_OUT;
+	SDA_PIN = 0;
 	return i;
 }
 
