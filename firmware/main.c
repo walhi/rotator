@@ -22,7 +22,7 @@ extern struct config cfg;
 //extern struct configFlags cfgFlags;
 
 /* Текущее положение антенны в градусах */
-int16_t antAzimuth = 140;
+int16_t antAzimuth = 0;
 int16_t antElevation = 0;
 
 /* Текущее положение антенны в "тиках" "энкодера" */
@@ -77,9 +77,17 @@ static void azConvert(void)
 			}
     }
   }
-}
 
-uint8_t calcDirMode;
+	/* Расширение шкалы -180 - 180 на размер overlap зоны */
+	if (dirAllowed.wire_left){
+		if (tmpAntAzimuth < 0) tmpAntAzimuth += 360;
+		if (tmpTargetAzimuth < 0 && tmpTargetAzimuth <= (-180 + cfg.Az.overlap_size)) tmpTargetAzimuth += 360;
+	}
+	if (dirAllowed.wire_right){
+		if (tmpAntAzimuth > 0) tmpAntAzimuth -= 360;
+		if (tmpTargetAzimuth > 0 && tmpTargetAzimuth >= (180 - cfg.Az.overlap_size)) tmpTargetAzimuth -= 360;
+	}
+}
 
 /*=========================================*/
 /* Расчет допустимых направлений           */
@@ -90,18 +98,15 @@ static void calcDir(void)
 		/* В overlap зону можно заходить против часовой стрелки */
 		dirAllowed.right_overlap = 0;
 		dirAllowed.right = 1;
-		if (tmpTargetAzimuth == (180 - cfg.Az.overlap_size)){
-			calcDirMode = 1;
+		if (tmpTargetAzimuth == (-180 - cfg.Az.overlap_size)){
 			/* Дошли до края overlap зоны */
 			dirAllowed.left = 0;
 			dirAllowed.left_overlap = 1;
 		} else if ((tmpTargetAzimuth < 0) && tmpTargetAzimuth > -180){
-			calcDirMode = 2;
 			/* Ещё не вошли в overlap зону */
 			dirAllowed.left = 1;
 			dirAllowed.left_overlap = 0;
 		} else {
-			calcDirMode = 3;
 			/* Внутри overlap зоны */
 			dirAllowed.left = 1;
 			dirAllowed.left_overlap = 1;
@@ -111,24 +116,20 @@ static void calcDir(void)
 		/* В overlap зону можно заходить по часовой стрелке */
 		dirAllowed.left_overlap = 0;
 		dirAllowed.left = 1;
-		if (tmpTargetAzimuth == (-180 + cfg.Az.overlap_size)){
-			calcDirMode = 4;
+		if (tmpTargetAzimuth == (180 + cfg.Az.overlap_size)){
 			/* Дошли до края overlap зоны */
 			dirAllowed.right = 0;
 			dirAllowed.right_overlap = 0;
 		} else if ((tmpTargetAzimuth > 0) && tmpTargetAzimuth < 180){
-			calcDirMode = 5;
 			/* Ещё не вошли в overlap зону */
 			dirAllowed.right = 1;
 			dirAllowed.right_overlap = 0;
 		} else {
-			calcDirMode = 6;
 			/* Внутри overlap зоны */
 			dirAllowed.right = 1;
 			dirAllowed.right_overlap = 1;
 		}
 	} else {
-		calcDirMode = 7;
 		/* Антенна находится на виртуальном нуле */
 		/* Разрешено использовать любое направление */
 		dirAllowed.right = 1;
@@ -137,6 +138,9 @@ static void calcDir(void)
 		dirAllowed.left_overlap = 0;
 	}
 }
+
+/* TODO костыль из-за недостатка памяти. */
+extern int16_t LCDAntAzimuth;
 
 extern int8_t azimuthTick;
 int main (void)
@@ -165,8 +169,12 @@ int main (void)
   motorElStop();
 
 	/* Чтение положения из EEPROM */
-  targetAzimuth = 170;
-  //targetAzimuth = antAzimuth;
+  readAnt();
+	antAzimuth = ((360 << 4) / cfg.Az.count * antAzimuthPos) >> 4; /* сдвиг для "увеличения точности" */
+	if (cfg.Flags.el_enable){
+		antElevation = ((360 << 4) / cfg.El.count * antElevationPos) >> 4; /* сдвиг для "увеличения точности" */
+	}
+	targetAzimuth = antAzimuth;
 
   /* Расчет виртуального нуля             */
 	/* 180 - overlap pos                    */
@@ -178,7 +186,7 @@ int main (void)
 	virtualZero = (virtualZero > 180)?(virtualZero - 360):virtualZero;
 
   startupMessage();
-	delay_hw_ms(300);
+	delay_hw_ms(800);
 
 	/*=========================================*/
 	/* Вход в режим калибровки азимута         */
@@ -221,12 +229,12 @@ int main (void)
 			}
     }
 
-
-
     /*=========================================*/
 		/* Логика выбранного режима                */
 		if (mode == port){
-			if (UARTStatus()) GS232Parse(1);
+			/* Переменная step не задействована в этом режиме */
+			/* Послужит флагом изменения целевого значения    */
+			if (UARTStatus()) step = GS232Parse(1);
     } else if (mode == manual){
 			if (UARTStatus()) GS232Parse(0);
 			step = encoderAzGet();
@@ -246,8 +254,8 @@ int main (void)
 		/* Обработка зоны overlap                  */
 		azConvert();
 
-		if (step){ /* Целевое значение менялось */
-			/* TODO: а если с порта поменялось? */
+		if (step){
+			/* Целевое значение менялось */
 			calcDir();
 		}
 
@@ -257,6 +265,13 @@ int main (void)
 		antAzimuth = ((360 << 4) / cfg.Az.count * antAzimuthPos) >> 4; /* сдвиг для "увеличения точности" */
 		if (cfg.Flags.el_enable){
 			antElevation = ((360 << 4) / cfg.El.count * antElevationPos) >> 4; /* сдвиг для "увеличения точности" */
+		}
+
+
+		/*=========================================*/
+		/* Сохранение текущего положения в eeprom  */
+		if (antAzimuth != LCDAntAzimuth){
+			writeAnt();
 		}
 
 		/*=========================================*/
@@ -269,31 +284,9 @@ int main (void)
 				targetAzimuthPos = ((((360 << 4) / cfg.Az.count) * targetAzimuth) >> 4); /* сдвиг для "увеличения точности" */
 
 				if (tmpAntAzimuth < tmpTargetAzimuth){
-					/* Проверка на короткий путь в overlap зону */
-					if (tmpAntAzimuth < 0 && tmpTargetAzimuth > (180 - cfg.Az.overlap_size)){
-						motorAzLeft();
-					} else {
-						if (tmpTargetAzimuth < 0){
-							/* Выход из overlap зоны */
-							motorAzLeft();
-						} else {
-							/* Идем по длинному пути */
-							motorAzRight();
-						}
-					}
+					motorAzRight();
 				} else {
-					/* Проверка на короткий путь в overlap зону */
-					if (tmpAntAzimuth > 0 && tmpTargetAzimuth < (-180 + cfg.Az.overlap_size)){
-						motorAzRight();
-					} else {
-						if (tmpTargetAzimuth < 0){
-							/* Выход из overlap зоны */
-							motorAzRight();
-						} else {
-							/* Идем по длинному пути */
-							motorAzLeft();
-						}
-					}
+					motorAzLeft();
 				}
 			}
 		} else {

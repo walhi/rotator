@@ -6,7 +6,6 @@
 
 /* Конфигурация устройства */
 extern struct config cfg;
-//extern struct configFlags cfgFlags;
 
 /* Текущее положение антенны */
 extern int16_t antAzimuth;
@@ -19,15 +18,12 @@ extern int16_t targetElevation;
 /* Режим работы */
 extern enum workMode mode;
 
-/* Текущее направление движения */
-extern int8_t azimuthTick;
-
 /* Допустимые направления */
 extern struct dir dirAllowed;
 
 /* Локальные переменные */
 enum workMode oldMode = none;
-static int16_t LCDAntAzimuth = 0x7fff;
+int16_t LCDAntAzimuth = 0x7fff;
 static int16_t LCDAntElevation = 0x7fff;
 static int16_t LCDTargetAzimuth = 0x7fff;
 static int16_t LCDTargetElevation = 0x7fff;
@@ -60,7 +56,8 @@ void oldInit(void)
 	if (cfg.Flags.el_enable){
 		LCDPosition(4, 0);
 		LCDPrintString(" AZ    EL");
-		LCDPosition(4, 1);
+		LCDPosition(0, 1);
+		LCDPrintString(" ANT");
 		LCDPrintString(" AZ    EL");
 	} else {
 		LCDPosition(4, 0);
@@ -148,8 +145,6 @@ void printBigAnt(int16_t value)
 }
 #endif
 
-extern int16_t tmpTargetAzimuth;
-extern uint8_t calcDirMode;
 void newPrintUI(void){
 	/* Режим работы */
   if (oldMode != mode){

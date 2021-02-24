@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
-void GS232Parse(uint8_t mode);
+/* Возвращает !0 при изменении целевого значения */
+int8_t GS232Parse(uint8_t mode);
 
 #endif

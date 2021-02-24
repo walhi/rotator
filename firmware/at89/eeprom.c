@@ -2,13 +2,21 @@
 #include "i2c.h"
 #include "configure.h"
 #include "delay_hw.h"
+#include "rotate.h"
 
 #define EEPROM_ADDRESS (uint8_t)(0b01010000 << 1)
 
+/* Конфигурация устройства */
 extern struct config cfg;
+
+/* Текущее положение антенны */
 extern int16_t antAzimuthPos;
 extern int16_t antElevationPos;
 
+/* Допустимые направления */
+extern struct dir dirAllowed;
+
+/* Адрес ячейки с текущим положением */
 static uint8_t posAddress;
 
 static uint8_t readData(uint8_t* buf, uint8_t size, uint8_t addr)
@@ -69,6 +77,7 @@ static uint8_t writeData(uint8_t* buf, uint8_t size, uint8_t addr)
 		buf++;
 	}
 	I2C_Stop();
+	delay_hw_ms(5);
 	return ret;
 }
 
@@ -108,14 +117,22 @@ void readAnt(void)
 {
 	/* Поиск ячейки с данными */
 	posAddress = 0;
-	/* TODO ротация */
+	/* TODO ротация ячейки памяти */
 	/* Ячейка найдена. Чтение позиции антенны. */
 	readData((uint8_t *)&antAzimuthPos, sizeof(antAzimuthPos), posAddress);
 	readData((uint8_t *)&antElevationPos, sizeof(antElevationPos), posAddress + 2);
+
+	/* Все равно используется меньше, чем 2^13 */
+	if (antElevationPos & 0x4000) dirAllowed.wire_right = 1;
+	if (antElevationPos & 0x2000) dirAllowed.wire_left = 1;
+	antElevationPos &= ~0x6000;
 }
 
 void writeAnt(void)
 {
 	writeData((uint8_t *)&antAzimuthPos, sizeof(antAzimuthPos), posAddress);
+	/* Все равно используется меньше, чем 2^13 */
+	if (dirAllowed.wire_right) antElevationPos |= 0x4000;
+	if (dirAllowed.wire_left)  antElevationPos |= 0x2000;
 	writeData((uint8_t *)&antElevationPos, sizeof(antElevationPos), posAddress + 2);
 }
