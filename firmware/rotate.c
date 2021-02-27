@@ -24,6 +24,28 @@ void rotateInit(){
   rotateHwInit();
 }
 
+
+int16_t azD2P(int16_t value)
+{
+	return ((((360 << 4) / cfg.Az.count) * value) >> 4);
+}
+
+int16_t azP2D(int16_t value)
+{
+	return (((360 << 4) / cfg.Az.count * value) >> 4);
+}
+
+int16_t elD2P(int16_t value)
+{
+	return ((((180 << 4) / cfg.El.count) * value) >> 4);
+}
+
+int16_t elP2D(int16_t value)
+{
+	return (((180 << 4) / cfg.El.count * value) >> 4);
+}
+
+
 void azimuthImpulse(){
 	int8_t tmp = motorAzTick();
   if (tmp){

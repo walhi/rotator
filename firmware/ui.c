@@ -111,6 +111,10 @@ void oldPrintUI(void)
   }
 }
 
+extern int16_t virtualZero;
+extern int16_t tmpAntAzimuth;
+extern int16_t tmpTargetAzimuth;
+
 
 /* Интерфейс с большими цифрами */
 #ifdef BIG_FONT
@@ -190,6 +194,7 @@ void newPrintUI(void){
 		printBigAnt(antAzimuth);
 #endif
 	}
+
 }
 
 void printUI(){

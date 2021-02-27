@@ -1,6 +1,8 @@
 #ifndef ROTATE_H
 #define ROTATE_H
 
+#include <stdint.h>
+
 struct dir {
   unsigned right: 1;
   unsigned right_overlap: 1;
@@ -13,6 +15,14 @@ struct dir {
 };
 
 void rotateInit(void);
+
+int16_t azD2P(int16_t value);
+
+int16_t azP2D(int16_t value);
+
+int16_t elD2P(int16_t value);
+
+int16_t elP2D(int16_t value);
 
 void azimuthImpulse(void);
 

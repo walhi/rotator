@@ -7,9 +7,6 @@
 #include "eeprom.h"
 
 struct config cfg;
-//struct configAz cfgAz;
-//struct configEl cfgEl;
-//struct configFlags cfgFlags;
 
 #define CONFIG_ENABLE
 #ifdef CONFIG_ENABLE
