@@ -32,6 +32,7 @@ void calibrateAz(){
 		}
 		if (encoderAzBtnGet(0)){
 			antAzimuthPos = azD2P(antAzimuth);
+      writeAnt();
 			break;
 		}
 	}

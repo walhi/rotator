@@ -5,11 +5,7 @@
 
 void UARTInit(void);
 
-void UARTSendChar(char data);
-
-void UARTSendBuf(char* data, uint8_t len);
-
-char* UARTGetBuf(void);
+void UARTSend(void);
 
 uint8_t UARTGetLen(void);
 

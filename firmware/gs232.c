@@ -2,6 +2,10 @@
 #include "uart.h"
 #include "motors.h"
 
+extern struct config cfg;
+
+extern char UARTBuf[];
+
 extern int16_t antAzimuth;
 extern int16_t antElevation;
 extern int16_t targetAzimuth;
@@ -23,7 +27,7 @@ uint16_t parse(char* buf)
  */
 int8_t GS232Parse(uint8_t mode)
 {
-  char* buf = UARTGetBuf();
+  char* buf = UARTBuf;
   uint8_t len = UARTGetLen();
   uint8_t d1, d2, d3;
 
@@ -36,6 +40,7 @@ int8_t GS232Parse(uint8_t mode)
 
   if (!len || buf[0] == 0) return 0;
 
+	/* В ручном режиме реагируем только на запросы состояния */
   if (mode == 0 && !(buf[0] == 'C' || buf[0] == 'B')) return 0;
 
 	switch(buf[0]){
@@ -82,29 +87,36 @@ int8_t GS232Parse(uint8_t mode)
     d1 = antAzimuth / 100 + '0';
     d2 = antAzimuth % 100 / 10 + '0';
     d3 = antAzimuth % 10 + '0';
-    UARTSendChar('+');
-    UARTSendChar('0');
-    UARTSendChar(d1);
-    UARTSendChar(d2);
-    UARTSendChar(d3);
+
 		if (buf[1] == '2'){
 			/* Return azimuth and elevation (“+0aaa+0eee”) */
-      UARTSendChar('+');
-      UARTSendChar('0');
-      UARTSendChar(antElevation / 100 + '0');
-      UARTSendChar(antElevation % 100 / 10 + '0');
-      UARTSendChar(antElevation % 10 + '0');
-		}
-    UARTSendChar('\r');
+      UARTBuf[5] = '+';
+      UARTBuf[6] = '0';
+      UARTBuf[7] = antElevation / 100 + '0';
+      UARTBuf[8] = antElevation % 100 / 10 + '0';
+      UARTBuf[9] = antElevation % 10 + '0';
+      UARTBuf[10] = '\r';
+      UARTBuf[11] = 0;
+		} else {
+      UARTBuf[5] = '\r';
+      UARTBuf[6] = 0;
+    }
+    UARTBuf[0] = '+';
+    UARTBuf[1] = '0';
+    UARTBuf[2] = d1;
+    UARTBuf[3] = d2;
+    UARTBuf[4] = d3;
+    UARTSend();
 		break;
 	case 'B':
 		/* Return current elevation angle in the form “+0nnn” degrees. */
-    UARTSendChar('+');
-    UARTSendChar('0');
-    UARTSendChar(antElevation / 100 + '0');
-    UARTSendChar(antElevation % 100 / 10 + '0');
-    UARTSendChar(antElevation % 10 + '0');
-		UARTSendChar('\r');
+    UARTBuf[0] = '+';
+    UARTBuf[1] = '0';
+    UARTBuf[2] = antElevation / 100 + '0';
+    UARTBuf[3] = antElevation % 100 / 10 + '0';
+    UARTBuf[4] = antElevation % 10 + '0';
+    UARTBuf[5] = '\r';
+    UARTBuf[6] = 0;
     break;
 	case 'M':
 		/* Turn to aaa degrees azimuth. */

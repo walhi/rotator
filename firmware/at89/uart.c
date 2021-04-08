@@ -1,31 +1,15 @@
 #include <8052.h>
 #include "uart.h"
-#include "configure.h"
 
-/* Конфигурация */
-extern struct config cfg;
-//extern struct configAz cfgAz;
-//extern struct configEl cfgEl;
-//extern struct configFlags cfgFlags;
-
-static char UARTRxBuf[8];
-static char UARTRxBufPos;
-static char UARTFIFOBuf[8];
-static char UARTFIFOBufPos;
-static char UARTFIFOBufPos2;
+char UARTBuf[16];
+static char UARTBufPos;
 static char UARTTxLen = 0;
 static uint8_t flag = 0;
 
-
-char* UARTGetBuf()
-{
-  return UARTRxBuf;
-}
-
 uint8_t UARTGetLen()
 {
-  uint8_t val = UARTRxBufPos; // + 1;
-  UARTRxBufPos = 0;
+  uint8_t val = UARTBufPos; // + 1;
+  UARTBufPos = 0;
   return val;
 }
 
@@ -43,23 +27,10 @@ void UARTInit(void)
 	ES = 1;  		/* Enable serial interrupt */
 }
 
-void UARTSendChar(char data)
+void UARTSend(void)
 {
-	if (UARTTxLen){
-		UARTFIFOBuf[UARTFIFOBufPos2] = data;
-		UARTTxLen++;
-		UARTFIFOBufPos2++;
-	} else {
-		SBUF = data;
-		UARTFIFOBufPos = 0;
-		UARTFIFOBufPos2 = 0;
-		UARTTxLen = 1;
-	}
-}
-
-void UARTSendBuf(char* data, uint8_t len)
-{
-	while (len--) UARTSendChar(*data++);
+  UARTBufPos = 0;
+  SBUF = UARTBuf[UARTBufPos];
 }
 
 uint8_t UARTStatus(){
@@ -75,22 +46,20 @@ void UARTInt()
 {
 	if (TI){
 		TI = 0;
-		UARTTxLen--;
 		if (UARTTxLen){
-			SBUF = UARTFIFOBuf[UARTFIFOBufPos];
-			UARTFIFOBufPos++;
+      if (UARTBuf[UARTBufPos]){
+        SBUF = UARTBuf[UARTBufPos];
+        UARTBufPos++;
+      }
 		}
 	} else {
 		RI = 0;			/* Clear RI flag */
 		P2_0 = 0;
 		uint8_t data = SBUF;
-		UARTRxBuf[UARTRxBufPos++] = data;
+		UARTBuf[UARTBufPos++] = data;
 		if (data == '\n' || data == '\r'){
 			flag = 1;
-			UARTRxBuf[UARTRxBufPos] = 0;
-		}
-		if (cfg.Flags.com_echo){
-			UARTSendChar(data);
+			UARTBuf[UARTBufPos] = 0;
 		}
 	}
 }

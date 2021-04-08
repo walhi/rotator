@@ -130,6 +130,7 @@ void readAnt(void)
 
 void writeAnt(void)
 {
+	posAddress = 0;
 	writeData((uint8_t *)&antAzimuthPos, sizeof(antAzimuthPos), posAddress);
 	/* Все равно используется меньше, чем 2^13 */
 	if (dirAllowed.wire_right) antElevationPos |= 0x4000;

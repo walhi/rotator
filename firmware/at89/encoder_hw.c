@@ -9,4 +9,9 @@ void encoderHwInit()
   /* К портам 1-3 это не относится        */
 	P0 = 0xff;
 
+	/* Инициализация таймера 2 */
+	RCAP2H = 0xfc;
+	TR2 = 1;
+	ET2 = 1;  /* Enable interrupt */
+	EA  = 1;  /* Enable global interrupt */
 }

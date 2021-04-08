@@ -109,7 +109,6 @@ void configure(void)
 	cfg.Az.overlap_size = configureInt("AZ overlap size:", 0, 360, cfg.Az.overlap_size);
 	cfg.Az.parking = configureInt("AZ Parking:", 0, 360, cfg.Az.parking);
 
-	cfg.Flags.com_echo = configureFlag("COM port echo:", cfg.Flags.com_echo);
 	cfg.Flags.ui_use_old = configureFlag("Old interface:", cfg.Flags.ui_use_old);
   cfg.Flags.el_enable = configureFlag("Elevation:", cfg.Flags.el_enable);
 	if (cfg.Flags.el_enable){

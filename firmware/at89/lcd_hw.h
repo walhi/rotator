@@ -5,6 +5,9 @@
 
 void LCDHwInit(void);
 
+
+void LCDCommand4(uint8_t data);
+
 void LCDWrite(uint8_t data, uint8_t mode);
 
 

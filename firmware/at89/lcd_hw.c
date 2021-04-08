@@ -12,6 +12,24 @@
 
 void LCDHwInit(){
   P2 = 0xff;
+
+	LCD_RS_PIN = 1;
+	LCD_RW_PIN = 1;
+	LCD_E_PIN = 1;
+}
+
+void LCDCommand4(uint8_t data)
+{
+  LCD_RS_PIN = 0;
+	LCD_RW_PIN = 0;
+  /* 4 bit mode */
+  LCD_D7_PIN = (data & 0x8);
+  LCD_D6_PIN = (data & 0x4);
+  LCD_D5_PIN = (data & 0x2);
+  LCD_D4_PIN = (data & 0x1);
+  LCD_E_PIN = 0;
+  delay_hw_us(40); /* TODO */
+  LCD_E_PIN = 1;
 }
 
 void LCDWrite(uint8_t data, uint8_t mode)

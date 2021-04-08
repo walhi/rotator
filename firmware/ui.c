@@ -163,7 +163,7 @@ void newPrintUI(void){
   }
 
 	/* Целевое значение азимута */
-  if (LCDTargetAzimuth != targetAzimuth){
+  if (LCDTargetAzimuth != targetAzimuth || LCDAntAzimuth != antAzimuth){
     LCDTargetAzimuth = targetAzimuth;
 		LCDReverse(); // числа выводятся в обратном порядке
     LCDPosition(5, 1);

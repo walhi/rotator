@@ -3,6 +3,8 @@
 #include "delay_hw.h"
 
 static const uint16_t rot_enc_table = 0b0110100110010110;
+int8_t encoderAzTick = 0;
+int8_t encoderElTick = 0;
 
 void encoderInit()
 {
@@ -11,13 +13,10 @@ void encoderInit()
 
 /* A vald CW or CCW move returns 1, invalid returns 0. */
 /* https://www.best-microcontroller-projects.com/rotary-encoder.html */
-int8_t encoderAzGet()
+void encoderAzRead()
 {
 	static uint8_t  prevNextCode = 0;
 	static uint16_t store = 0;
-  static int8_t oldDir = 0;
-  static int8_t tick = 1;
-  int8_t dir = 0;
 
   prevNextCode <<= 2;
   if (encoderHwAzAGet()) prevNextCode |= 0x02;
@@ -27,16 +26,12 @@ int8_t encoderAzGet()
 	if ((rot_enc_table >> prevNextCode) & 0x01) {
 		store <<= 4;
 		store |= prevNextCode;
-		if ((store & 0xff) == 0x2b) dir = -1;
-		if ((store & 0xff) == 0x17) dir = 1;
+		if ((store & 0xff) == 0x2b) encoderAzTick = -1;
+		if ((store & 0xff) == 0x17) encoderAzTick = 1;
 	}
-
-
-	return dir;
 }
 
-
-int8_t encoderElGet()
+void encoderElRead()
 {
 	static uint8_t  prevNextCode = 0;
 	static uint16_t store = 0;
@@ -49,11 +44,25 @@ int8_t encoderElGet()
 	if ((rot_enc_table >> prevNextCode) & 0x01) {
 		store <<= 4;
 		store |= prevNextCode;
-		if ((store&0xff)==0x2b) return -1;
-		if ((store&0xff)==0x17) return 1;
+		if ((store & 0xff) == 0x2b) encoderElTick = -1;
+		if ((store & 0xff) == 0x17) encoderElTick = 1;
 	}
+}
 
-  return 0;
+/* A vald CW or CCW move returns 1, invalid returns 0. */
+/* https://www.best-microcontroller-projects.com/rotary-encoder.html */
+int8_t encoderAzGet()
+{
+	int8_t tmp = encoderAzTick;
+	encoderAzTick = 0;
+	return tmp;
+}
+
+int8_t encoderElGet()
+{
+	int8_t tmp = encoderElTick;
+	encoderElTick = 0;
+	return tmp;
 }
 
 int8_t encoderAzBtnGet(uint8_t cont)
