@@ -74,16 +74,39 @@ void LCDWriteBuf(const uint8_t* buf, uint8_t count){
 void LCDInit()
 {
   LCDHwInit();
+
+	// TODO LCD Init
+
   LCDWrite(0x02, 0);                /* Configure the LCD in 4-bit mode, */
-  delay_hw_ms(5);
+	delay_hw_ms(5);
   LCDWrite(0x28, 0);                /* 2 line and 5x7 font */
-  delay_hw_ms(5);
+	delay_hw_ms(5);
   LCDWrite(0x0C, 0);                /* Display On and Cursor On */
-  delay_hw_ms(5);
+	delay_hw_ms(5);
 	LCDWrite(0x06, 0);                /* Increment cursor */
+	delay_hw_ms(5);
+
+
+
+  LCDCommand4(0x03);
+  delay_hw_ms(15);
+  LCDCommand4(0x03);
+  delay_hw_ms(15);
+  LCDCommand4(0x03);
+  delay_hw_ms(15);
+  LCDCommand4(0x02);                /* Configure the LCD in 4-bit mode, */
+  delay_hw_ms(5);
+  LCDCommand4(0x08);                /* 2 line and 5x7 font */
+  delay_hw_ms(5);
+  LCDCommand4(0x0C);                /* Display On and Cursor On */
+  delay_hw_ms(5);
+  LCDCommand4(0x06);                /* Increment cursor */
   delay_hw_ms(5);
   LCDWrite(0x80, 0);                /* Set cursor position to 1st line, 1st column */
   delay_hw_ms(5);
+
+  LCDClear();
+
 
 #ifdef BIG_FONT
 	/* Загрузка кастомных символов для больших шрифтов */

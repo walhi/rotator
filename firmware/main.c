@@ -17,9 +17,11 @@
 
 /* Конфигурация */
 extern struct config cfg;
-//extern struct configAz cfgAz;
-//extern struct configEl cfgEl;
-//extern struct configFlags cfgFlags;
+
+#define DEBUG_IMPULSE
+#ifdef DEBUG_IMPULSE
+void debugImpulseInit(void);
+#endif
 
 /* Текущее положение антенны в градусах */
 int16_t antAzimuth = 0;
@@ -131,7 +133,7 @@ static void calcDir(void)
 		if (tmpTargetAzimuth == (180 + cfg.Az.overlap_size)){
 			/* Дошли до края overlap зоны */
 			dirAllowed.right = 0;
-			dirAllowed.right_overlap = 0;
+			dirAllowed.right_overlap = 1;
 		} else if ((tmpTargetAzimuth >= 0) && tmpTargetAzimuth < 180){
 			/* Ещё не вошли в overlap зону */
 			dirAllowed.right = 1;
@@ -179,6 +181,10 @@ int main (void)
 	UARTInit();
   rotateInit();
 
+#ifdef DEBUG_IMPULSE
+  debugImpulseInit();
+#endif
+
   /* Остановить все движение */
   motorAzStop();
   motorElStop();
@@ -221,8 +227,6 @@ int main (void)
 		calibrateEl();
 	}
 
-
-
 	azConvert();
 	calcDir();
 
@@ -255,7 +259,13 @@ int main (void)
 			if (UARTStatus()) GS232Parse(0);
 			step = encoderAzGet();
       if (step){
+				if (encoderAzBtnGet(1)){
+					step *= 10;
+				}
         if (((step > 0) && dirAllowed.right) || ((step < 0) && dirAllowed.left)){
+          /* Движение разрешено, если не нарушает overlap зону */
+          /* Или нажата кнопка энкодера, как подтверждение действия */
+          /* Но при этом провод все равно не будет перекручен. */
 					timerReload(&actionTimer, 2000);
 					targetAzimuth += step;
           if (targetAzimuth >= 360) targetAzimuth -= 360;
@@ -286,7 +296,7 @@ int main (void)
 
 		/*=========================================*/
 		/* Сохранение текущего положения в eeprom  */
-		if (0 && antAzimuth != LCDAntAzimuth){
+		if (antAzimuth != LCDAntAzimuth){
 			writeAnt();
 		}
 
@@ -342,4 +352,44 @@ void INT1_ISR() __interrupt IE1_VECTOR
 {
   elevationImpulse();
 }
+
+#ifdef DEBUG_IMPULSE
+
+void debugImpulseInit(void)
+{
+	/* Инициализация таймера 2 */
+	//CP_RL2 = 1;
+	RCAP2H = 0xfc;
+	//RCAP2L = 0x00;
+	TR2 = 1;
+	ET2 = 1;  /* Enable interrupt */
+	EA  = 1;  /* Enable global interrupt */
+}
+
+#ifdef DEBUG_IMPULSE
+uint8_t debug_impulse_count = 0;
+#endif
+
+
+/* 30.5 переполнений таймера в секунду на частоте 24 МГц */
+/* Одно переполнение соответствует ~33 мс*/
+void Timer2_ISR() __interrupt 5 //TF2_VECTOR
+{
+	TF2 = 0;
+
+	encoderAzRead();
+	encoderElRead();
+
+#ifdef DEBUG_IMPULSE
+	if (debug_impulse_count == 0){
+		azimuthImpulse();
+		debug_impulse_count = RCAP2H >> 1;
+	}
+	debug_impulse_count--;
+#endif
+
+}
+
+#endif
+
 #endif

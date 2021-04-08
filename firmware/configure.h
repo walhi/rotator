@@ -18,7 +18,6 @@ struct configEl {
 };
 
 struct configFlags {
-  unsigned com_echo: 1;
   unsigned ui_use_old: 1;
   unsigned el_enable: 1;
 };
