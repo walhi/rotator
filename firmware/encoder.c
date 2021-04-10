@@ -44,8 +44,6 @@ void encoderElRead()
 	}
 }
 
-/* A vald CW or CCW move returns 1, invalid returns 0. */
-/* https://www.best-microcontroller-projects.com/rotary-encoder.html */
 int8_t encoderAzGet()
 {
 	int8_t tmp = encoderAzTick;
