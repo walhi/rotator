@@ -2,8 +2,11 @@
 #define ENCODER_H
 
 #include <stdint.h>
+#include "encoder_hw.h"
 
-void encoderInit(void);
+inline void encoderInit(void){
+	  encoderHwInit();
+}
 
 void encoderAzRead(void);
 

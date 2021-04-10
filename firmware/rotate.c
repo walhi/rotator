@@ -20,10 +20,6 @@ extern int16_t targetElevationPos;
 int16_t antAzimuthPos = 0;
 int16_t antElevationPos = 0;
 
-void rotateInit(){
-  rotateHwInit();
-}
-
 
 int16_t azD2P(int16_t value)
 {

@@ -6,11 +6,6 @@ static const uint16_t rot_enc_table = 0b0110100110010110;
 int8_t encoderAzTick = 0;
 int8_t encoderElTick = 0;
 
-void encoderInit()
-{
-  encoderHwInit();
-}
-
 /* A vald CW or CCW move returns 1, invalid returns 0. */
 /* https://www.best-microcontroller-projects.com/rotary-encoder.html */
 void encoderAzRead()

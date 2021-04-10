@@ -261,6 +261,15 @@ int main (void)
           /* Но при этом провод все равно не будет перекручен. */
 					timerReload(&actionTimer, 2000);
 					targetAzimuth += step;
+
+          if ((tmpTargetAzimuth + step) > (180 + cfg.Az.overlap_size)){
+            targetAzimuth = cfg.Az.overlap_position + cfg.Az.overlap_size;
+          }
+
+          if ((tmpTargetAzimuth + step) < (-180 - cfg.Az.overlap_size)){
+            targetAzimuth = cfg.Az.overlap_position - cfg.Az.overlap_size;
+          }
+
           if (targetAzimuth >= 360) targetAzimuth -= 360;
           if (targetAzimuth < 0) targetAzimuth += 360;
         } else {

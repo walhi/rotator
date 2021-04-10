@@ -4,6 +4,7 @@
 #include "configure.h"
 #include "encoder.h"
 #include "lcd.h"
+#include "eeprom.h"
 
 /* Конфигурация */
 extern struct config cfg;
