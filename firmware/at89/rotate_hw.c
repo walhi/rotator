@@ -3,7 +3,7 @@
 #include "rotate.h"
 
 
-void rotateHwInit()
+void rotateHwInit(void)
 {
   IT0 = 1;
   EX0 = 1;

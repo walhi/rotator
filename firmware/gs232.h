@@ -2,8 +2,9 @@
 #define GS232_H
 
 #include <stdint.h>
+#include "ui.h"
 
 /* Возвращает !0 при изменении целевого значения */
-int8_t GS232Parse(uint8_t mode);
+int8_t GS232Parse(enum workMode mode);
 
 #endif

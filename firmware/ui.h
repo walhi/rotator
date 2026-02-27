@@ -2,9 +2,9 @@
 #define UI_H
 
 enum workMode {
-               none,
-               port,
-               manual,
+	WORK_NONE,
+	WORK_PORT,
+	WORK_MANUAL,
 };
 
 void startupMessage(void);

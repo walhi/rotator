@@ -22,17 +22,22 @@ extern enum workMode mode;
 extern struct dir dirAllowed;
 
 /* Локальные переменные */
-enum workMode oldMode = none;
+enum workMode oldMode = WORK_NONE;
 int16_t LCDAntAzimuth = 0x7fff;
 static int16_t LCDAntElevation = 0x7fff;
 static int16_t LCDTargetAzimuth = 0x7fff;
 static int16_t LCDTargetElevation = 0x7fff;
 
-void startupMessage()
+uint8_t antAzDig[3];
+uint8_t antElDig[3];
+//uint8_t antAzStr[3];
+//uint8_t antElStr[3];
+
+void startupMessage(void)
 {
   LCDClear();
-	LCDPosition(0, 0); LCDPrintString("Alt. firmware");
-	LCDPosition(0, 1); LCDPrintString("RK3MXT Rotator");
+	LCDPosition(0, 0); LCDPrintString("RK3MXT Rotator");
+	LCDPosition(0, 1); LCDPrintString("Version 0.2");
 }
 
 /* Классический интерфейс */
@@ -40,7 +45,7 @@ void oldPrintMode(void)
 {
 	LCDNormal();
 	LCDPosition(0, 0);
-	if (mode == port){
+	if (mode == WORK_PORT){
 		LCDPrintString("PORT");
 	} else {
 		LCDPrintString(" MAN");
@@ -123,28 +128,25 @@ void printBigAnt(int16_t value)
   static uint8_t LCDD1 = 0xff;
   static uint8_t LCDD2 = 0xff;
   static uint8_t LCDD3 = 0xff;
-  uint8_t d1 = value / 100;
-  uint8_t d2 = value % 100 / 10;
-  uint8_t d3 = value % 10;
-  if (LCDD1 != d1){
-    LCDD1 = d1;
-		if (d1 != 0){
-			LCDPrintBigDigit(d1, 7);
+  if (LCDD1 != antAzDig[0]){
+    LCDD1 = antAzDig[0];
+		if (LCDD1 != 0){
+			LCDPrintBigDigit(LCDD1, 7);
 		} else {
 			LCDPrintBigDigit(' ', 7);
 		}
   }
-  if (LCDD2 != d2){
-    LCDD2 = d2;
-		if (d1 != 0 || d2 != 0){
-			LCDPrintBigDigit(d2, 10);
+  if (LCDD2 != antAzDig[1]){
+    LCDD2 = antAzDig[1];
+		if (LCDD1 != 0 || LCDD2 != 0){
+			LCDPrintBigDigit(LCDD2, 10);
 		} else {
 			LCDPrintBigDigit(' ', 10);
 		}
   }
-  if (LCDD3 != d3){
-    LCDD3 = d3;
-    LCDPrintBigDigit(d3, 13);
+  if (LCDD3 != antAzDig[2]){
+    LCDD3 = antAzDig[2];
+    LCDPrintBigDigit(LCDD3, 13);
   }
 }
 #endif
@@ -155,7 +157,7 @@ void newPrintUI(void){
     oldMode = mode;
 		LCDNormal();
 		LCDPosition(0, 0);
-		if (mode == port){
+		if (mode == WORK_PORT){
 			LCDPrintString("Port  ");
 		} else {
 			LCDPrintString("Manual");
@@ -197,7 +199,28 @@ void newPrintUI(void){
 
 }
 
-void printUI(){
+void printUI(void){
+	// Извлечение цифр, используется далее в нескольких местах
+
+	antElDig[0] = antElevation / 100;
+	antElDig[1] = antElevation % 100 / 10;
+	antElDig[2] = antElevation % 10;
+
+	/*
+	antElStr[0] = antElDig[0] + '0';
+	antElStr[1] = antElDig[1] + '0';
+  antElStr[2] = antElDig[2] + '0';
+	*/
+
+	antAzDig[0] = antAzimuth / 100;
+	antAzDig[1] = antAzimuth % 100 / 10;
+	antAzDig[2] = antAzimuth % 10;
+	/*
+	antAzStr[0] = antAzDig[0] + '0';
+	antAzStr[1] = antAzDig[1] + '0';
+  antAzStr[2] = antAzDig[2] + '0';
+	*/
+
   if (cfg.Flags.ui_use_old){
     oldPrintUI();
   } else {
@@ -205,7 +228,7 @@ void printUI(){
   }
 }
 
-void initUI(){
+void initUI(void){
   if (cfg.Flags.ui_use_old){
     oldInit();
   } else {

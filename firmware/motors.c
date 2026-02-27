@@ -2,7 +2,7 @@
 #include "motors.h"
 #include "motors_hw.h"
 
-void motorsInit()
+void motorsInit(void)
 {
 	motorsHwInit();
 	motorAzDisable();
@@ -10,57 +10,41 @@ void motorsInit()
 	motorAzR2Disable();
 }
 
-int8_t motorAzTick()
-{
-	if (motorAzR1Status()) return -1;
-	if (motorAzR2Status()) return 1;
-	return 0;
-}
-
-void motorAzLeft()
+void motorAzLeft(void)
 {
 	motorAzR2Disable();
   motorAzR1Enable();
 	motorAzEnable();
 }
 
-void motorAzRight()
+void motorAzRight(void)
 {
 	motorAzR1Disable();
   motorAzR2Enable();
 	motorAzEnable();
 }
 
-
-void motorAzStop()
+void motorAzStop(void)
 {
 	motorAzDisable();
 	motorAzR1Disable();
 	motorAzR2Disable();
 }
 
-
-int8_t motorElTick()
-{
-	if (motorElR1Status()) return 1;
-	if (motorElR2Status()) return -1;
-	return 0;
-}
-
-void motorElUp()
+void motorElUp(void)
 {
   motorElR1Enable();
 	motorElEnable();
 }
 
-void motorElDown()
+void motorElDown(void)
 {
   motorElR2Enable();
 	motorElEnable();
 }
 
 
-void motorElStop()
+void motorElStop(void)
 {
 	motorElDisable();
 	motorElR1Disable();

@@ -18,7 +18,7 @@
 /* Конфигурация */
 extern struct config cfg;
 
-#define DEBUG_IMPULSE
+//#define DEBUG_IMPULSE
 
 /* Текущее положение антенны в градусах */
 int16_t antAzimuth = 0;
@@ -46,6 +46,17 @@ struct dir dirAllowed;
 int16_t virtualZero;
 int16_t tmpAntAzimuth;
 int16_t tmpTargetAzimuth;
+
+
+#ifdef __SDCC
+/* SDCC требует прототипы прерываний только внутри файла, содержащего main()...  */
+#include <8052.h>
+void Serial_ISR(void) __interrupt (SI0_VECTOR);
+void Timer0_ISR(void) __interrupt (TF0_VECTOR);
+void INT0_ISR(void) __interrupt (IE0_VECTOR);
+void INT1_ISR(void) __interrupt (IE1_VECTOR);
+void Timer2_ISR(void) __interrupt (5); //TF2_VECTOR
+#endif
 
 
 /*=========================================*/
@@ -161,6 +172,11 @@ int main (void)
 {
 	int8_t step;
 
+  /* Остановить все движение */
+  motorsInit();
+  motorAzStop();
+  motorElStop();
+
 	/* Задержка для включения LCD экрана. А нужна ли? */
   delay_hw_ms(50);
 
@@ -173,14 +189,10 @@ int main (void)
 	/* Инициализация остального железа */
 	clockInit();
   LCDInit();
-  motorsInit();
   encoderInit();
 	UARTInit();
   rotateInit();
 
-  /* Остановить все движение */
-  motorAzStop();
-  motorElStop();
 
 	/* Чтение положения из EEPROM */
   readAnt();
@@ -188,7 +200,6 @@ int main (void)
 	if (cfg.Flags.el_enable){
 		antElevation = elP2D(antElevationPos);
 	}
-	targetAzimuth = antAzimuth;
 
 	/*=========================================*/
 	/* Вход в режим настройки                  */
@@ -196,6 +207,8 @@ int main (void)
 		configure();
 	}
 
+
+	/*=========================================*/
   /* Расчет виртуального нуля             */
 	/* 180 - overlap pos                    */
 	if (cfg.Az.overlap_position >= 180){
@@ -206,24 +219,37 @@ int main (void)
 	virtualZero = (virtualZero > 180)?(virtualZero - 360):virtualZero;
 
   startupMessage();
-	delay_hw_ms(800);
+	delay_hw_ms(200);
 
 	/*=========================================*/
 	/* Вход в режим калибровки азимута         */
-	if (encoderAzBtnGet(1) && !encoderElBtnGet(1)){
+	if (encoderAzBtnGet(BTN_CONT) && !encoderElBtnGet(BTN_CONT)){
 		calibrateAz();
+		antAzimuth = azP2D(antAzimuthPos);
 	}
 
 	/*=========================================*/
 	/* Вход в режим калибровки элевации        */
-	if (cfg.Flags.el_enable && !encoderAzBtnGet(1) && encoderElBtnGet(1)){
+	if (cfg.Flags.el_enable && !encoderAzBtnGet(BTN_CONT) && encoderElBtnGet(BTN_CONT)){
 		calibrateEl();
+		antElevation = elP2D(antElevationPos);
 	}
 
+
+	/*=========================================*/
+	/* Уставка должна совпадать с текущим      */
+	/* положением при старте                   */
+	targetAzimuth = antAzimuth;
+	targetElevation = antElevation;
+
+	// Расчет зоны overlap
 	azConvert();
+
+	// Расчет допустимых направлений
 	calcDir();
 
-	mode = port;
+	//
+	mode = WORK_MANUAL;
 
 	initUI();
 	printUI();
@@ -234,31 +260,37 @@ int main (void)
 		/*=========================================*/
 		/* Смена режимов работы                    */
     if (encoderElBtnGet(0)){
-      if (mode == port){
-				mode = manual;
+      if (mode == WORK_PORT){
+				mode = WORK_MANUAL;
         targetAzimuth = antAzimuth;
-			} else if (mode == manual){
-				mode = port;
+			} else if (mode == WORK_MANUAL){
+				mode = WORK_PORT;
 			}
     }
 
     /*=========================================*/
 		/* Логика выбранного режима                */
-		if (mode == port){
+		if (mode == WORK_PORT){
 			/* Переменная step не задействована в этом режиме */
 			/* Послужит флагом изменения целевого значения    */
 			if (UARTStatus()) step = GS232Parse(1);
-    } else if (mode == manual){
+    } else if (mode == WORK_MANUAL){
+			// Обработка команды чтения положения с UART
 			if (UARTStatus()) GS232Parse(0);
+
+			//
 			step = encoderAzGet();
+			uint8_t btn = encoderAzBtnGet(BTN_CONT);
       if (step){
-				if (encoderAzBtnGet(1)){
+				// Увеличивать шаг только вне зоны overlap
+				if (btn && !(dirAllowed.right_overlap || dirAllowed.left_overlap)){
 					step *= 10;
 				}
-        if (((step > 0) && dirAllowed.right) || ((step < 0) && dirAllowed.left)){
-          /* Движение разрешено, если не нарушает overlap зону */
-          /* Или нажата кнопка энкодера, как подтверждение действия */
-          /* Но при этом провод все равно не будет перекручен. */
+
+        /* Движение разрешено, если не нарушает overlap зону */
+        /* Или нажата кнопка энкодера, как подтверждение действия */
+        /* Но при этом провод все равно не будет перекручен. */
+        if (((step > 0) && dirAllowed.right) || ((step < 0) && dirAllowed.left) || btn){
 					timerReload(&actionTimer, 2000);
 					targetAzimuth += step;
           if (targetAzimuth >= 360) targetAzimuth -= 360;
@@ -298,7 +330,7 @@ int main (void)
 		if (targetAzimuth != antAzimuth){
 			/* Задержка начала движения при изменении */
 			/* Целевого значения вручную */
-			if (mode == port || timerCheck(&actionTimer)){
+			if (mode == WORK_PORT || timerCheck(&actionTimer)){
 				/* Перевод градусов в координаты "энкодера" */
 				targetAzimuthPos = ((((360 << 4) / cfg.Az.count) * targetAzimuth) >> 4); /* сдвиг для "увеличения точности" */
 
@@ -326,22 +358,22 @@ int main (void)
 /* SDCC only generates an interrupt vector table for the file that contains main() */
 #include <8052.h>
 #include "encoder_hw.h"
-void Serial_ISR() __interrupt SI0_VECTOR
+void Serial_ISR(void) __interrupt (SI0_VECTOR)
 {
 	UARTInt();
 }
 
-void Timer0_ISR() __interrupt TF0_VECTOR
+void Timer0_ISR(void) __interrupt (TF0_VECTOR)
 {
 	timer0Int();
 }
 
-void INT0_ISR() __interrupt IE0_VECTOR
+void INT0_ISR(void) __interrupt (IE0_VECTOR)
 {
   azimuthImpulse();
 }
 
-void INT1_ISR() __interrupt IE1_VECTOR
+void INT1_ISR(void) __interrupt (IE1_VECTOR)
 {
   elevationImpulse();
 }
@@ -350,7 +382,7 @@ void INT1_ISR() __interrupt IE1_VECTOR
 uint8_t debug_impulse_count = 0;
 #endif
 
-void Timer2_ISR() __interrupt 5 //TF2_VECTOR
+void Timer2_ISR(void) __interrupt (5) //TF2_VECTOR
 {
 	TF2 = 0;
 
@@ -360,7 +392,7 @@ void Timer2_ISR() __interrupt 5 //TF2_VECTOR
 #ifdef DEBUG_IMPULSE
 	if (debug_impulse_count == 0){
 		azimuthImpulse();
-		debug_impulse_count = RCAP2H >> 1;
+		debug_impulse_count = 40;//RCAP2H >> 1;
 	}
 	debug_impulse_count--;
 #endif

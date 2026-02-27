@@ -38,72 +38,55 @@ CODE_MEM_BEFORE const uint8_t bigDigits[10][6] CODE_MEM_AFTER =	{
 
 /*================================================*/
 
-static void uintPrint(int16_t val, int8_t len)
+
+void LCDPrint(uint16_t value, uint8_t length)
 {
-	if (val == 0) {
+	if (value == 0) {
 		LCDWrite('0', 1);
-		len--;
+		length--;
 	} else {
-		while (val != 0) {
-			uint8_t rem = val % 10;
+		while (value != 0) {
+			uint8_t rem = value % 10;
 			LCDWrite(rem + '0', 1);
-			val /= 10;
-			len--;
+			value /= 10;
+			length--;
 		}
 	}
-	while(len > 0){
-		len--;
+	while(length > 0){
+		length--;
 		LCDWrite(' ', 1);
 	}
 }
 
-void LCDPrint(int16_t value, uint8_t digit)
-{
-	uintPrint(value, digit);
-}
 
-#ifdef BIG_FONT
 void LCDWriteBuf(const uint8_t* buf, uint8_t count){
 	uint8_t i;
 	for (i = 0; i < count; i++){
 		LCDWrite(buf[i], 1);
 	}
 }
-#endif
 
-void LCDInit()
+void LCDInit(void)
 {
   LCDHwInit();
 
 	// TODO LCD Init
 
   LCDWrite(0x02, 0);                /* Configure the LCD in 4-bit mode, */
-	delay_hw_ms(5);
   LCDWrite(0x28, 0);                /* 2 line and 5x7 font */
-	delay_hw_ms(5);
   LCDWrite(0x0C, 0);                /* Display On and Cursor On */
-	delay_hw_ms(5);
 	LCDWrite(0x06, 0);                /* Increment cursor */
-	delay_hw_ms(5);
 
 
 
   LCDCommand4(0x03);
-  delay_hw_ms(15);
   LCDCommand4(0x03);
-  delay_hw_ms(15);
   LCDCommand4(0x03);
-  delay_hw_ms(15);
   LCDCommand4(0x02);                /* Configure the LCD in 4-bit mode, */
-  delay_hw_ms(5);
   LCDCommand4(0x08);                /* 2 line and 5x7 font */
-  delay_hw_ms(5);
   LCDCommand4(0x0C);                /* Display On and Cursor On */
-  delay_hw_ms(5);
   LCDCommand4(0x06);                /* Increment cursor */
-  delay_hw_ms(5);
   LCDWrite(0x80, 0);                /* Set cursor position to 1st line, 1st column */
-  delay_hw_ms(5);
 
   LCDClear();
 
@@ -129,7 +112,7 @@ void LCDPosition(uint8_t col, uint8_t row)
   LCDWrite(col, 0);
 }
 
-void LCDClear(){
+void LCDClear(void){
   LCDWrite(LCD_CMD_CLR, 0);
   delay_hw_ms(2); // TODO
 }
@@ -137,6 +120,7 @@ void LCDClear(){
 void LCDPrintString(char* str)
 {
   uint8_t i;
+	LCDNormal();
   for (i = 0; i < 16; i++){
     if (str[i] == 0) break;
     LCDWrite(str[i], 1);

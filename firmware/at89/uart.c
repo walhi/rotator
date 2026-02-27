@@ -6,7 +6,7 @@ static char UARTBufPos;
 static char UARTTxLen = 0;
 static uint8_t flag = 0;
 
-uint8_t UARTGetLen()
+uint8_t UARTGetLen(void)
 {
   uint8_t val = UARTBufPos; // + 1;
   UARTBufPos = 0;
@@ -33,7 +33,7 @@ void UARTSend(void)
   SBUF = UARTBuf[UARTBufPos];
 }
 
-uint8_t UARTStatus(){
+uint8_t UARTStatus(void){
   if (flag){
     flag = 0;
     return 1;
@@ -42,7 +42,7 @@ uint8_t UARTStatus(){
 }
 
 /* void Serial_ISR() __interrupt SI0_VECTOR */
-void UARTInt()
+void UARTInt(void)
 {
 	if (TI){
 		TI = 0;

@@ -8,32 +8,32 @@
 
 void encoderHwInit(void);
 
-inline uint8_t encoderHwAzAGet()
+inline uint8_t encoderHwAzAGet(void)
 {
 	return P0_1;
 }
 
-inline uint8_t encoderHwAzBGet()
+inline uint8_t encoderHwAzBGet(void)
 {
   return P0_0;
 }
 
-inline uint8_t encoderHwAzBtnGet()
+inline uint8_t encoderHwAzBtnGet(void)
 {
   return P0_4;
 }
 
-inline uint8_t encoderHwElAGet()
+inline uint8_t encoderHwElAGet(void)
 {
   return P0_3;
 }
 
-inline uint8_t encoderHwElBGet()
+inline uint8_t encoderHwElBGet(void)
 {
   return P0_2;
 }
 
-inline uint8_t encoderHwElBtnGet()
+inline uint8_t encoderHwElBtnGet(void)
 {
   return P0_5;
 }

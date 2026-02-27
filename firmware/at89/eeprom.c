@@ -82,7 +82,7 @@ static uint8_t writeData(uint8_t* buf, uint8_t size, uint8_t addr)
 }
 
 #define CONFIG_ADDRESS (uint8_t)(255 - sizeof(cfg) - 1)
-uint8_t readConfig()
+uint8_t readConfig(void)
 {
 	uint8_t checksum = 0;
 	uint8_t checksumReaded;
@@ -101,7 +101,7 @@ uint8_t readConfig()
 	return 0;
 }
 
-void writeConfig()
+void writeConfig(void)
 {
 	uint8_t checksum = 0;
 	uint16_t i;

@@ -1,7 +1,7 @@
 #include <8052.h>
 #include "encoder_hw.h"
 
-void encoderHwInit()
+void encoderHwInit(void)
 {
   /* В 8051 порт 0 может быть использован */
   /* только как вход. Но для этого нужно  */

@@ -3,7 +3,7 @@
 
 static uint32_t mseconds = 0;
 
-void clockInit()
+void clockInit(void)
 {
 	/* Инициализация таймера 0 */
 	TMOD |= T0_M0; /* Mode 1 (16 bit) */
@@ -26,7 +26,7 @@ void timerReload(struct timer* t, uint16_t interval)
 
 /* 30.5 переполнений таймера в секунду на частоте 24 МГц */
 /* Одно переполнение соответствует ~33 мс*/
-void timer0Int()
+void timer0Int(void)
 {
 	TF0 = 0;
 	mseconds += 33;

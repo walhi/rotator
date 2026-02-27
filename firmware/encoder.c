@@ -6,14 +6,9 @@ static const uint16_t rot_enc_table = 0b0110100110010110;
 int8_t encoderAzTick = 0;
 int8_t encoderElTick = 0;
 
-void encoderInit()
-{
-  encoderHwInit();
-}
-
 /* A vald CW or CCW move returns 1, invalid returns 0. */
 /* https://www.best-microcontroller-projects.com/rotary-encoder.html */
-void encoderAzRead()
+void encoderAzRead(void)
 {
 	static uint8_t  prevNextCode = 0;
 	static uint16_t store = 0;
@@ -31,7 +26,7 @@ void encoderAzRead()
 	}
 }
 
-void encoderElRead()
+void encoderElRead(void)
 {
 	static uint8_t  prevNextCode = 0;
 	static uint16_t store = 0;
@@ -51,21 +46,21 @@ void encoderElRead()
 
 /* A vald CW or CCW move returns 1, invalid returns 0. */
 /* https://www.best-microcontroller-projects.com/rotary-encoder.html */
-int8_t encoderAzGet()
+int8_t encoderAzGet(void)
 {
 	int8_t tmp = encoderAzTick;
 	encoderAzTick = 0;
 	return tmp;
 }
 
-int8_t encoderElGet()
+int8_t encoderElGet(void)
 {
 	int8_t tmp = encoderElTick;
 	encoderElTick = 0;
 	return tmp;
 }
 
-int8_t encoderAzBtnGet(uint8_t cont)
+int8_t encoderAzBtnGet(enum ButtonMode mode)
 {
   static uint8_t encoderAzBtn = 1; /* extern pull up */
 	uint8_t state = encoderHwAzBtnGet();
@@ -74,13 +69,13 @@ int8_t encoderAzBtnGet(uint8_t cont)
 		delay_hw_ms(10);
 		if (state == 0) return 1;
 	}
-	if (cont){
+	if (mode == BTN_CONT){
 		if (state == 0) return 1;
 	}
 	return 0;
 }
 
-int8_t encoderElBtnGet(uint8_t cont)
+int8_t encoderElBtnGet(enum ButtonMode mode)
 {
   static uint8_t encoderElBtn = 1; /* extern pull up */
 	uint8_t state = encoderHwElBtnGet();
@@ -89,7 +84,7 @@ int8_t encoderElBtnGet(uint8_t cont)
 		delay_hw_ms(10);
 		if (state == 0) return 1;
 	}
-	if (cont){
+	if (mode == BTN_CONT){
 		if (state == 0) return 1;
 	}
 	return 0;
