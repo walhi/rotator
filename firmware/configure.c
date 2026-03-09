@@ -11,7 +11,7 @@ struct config cfg;
 #define CONFIG_ENABLE
 #ifdef CONFIG_ENABLE
 
-#ifdef __SDCC && 0
+#ifdef __SDCC
 __code const char enable_msg[]  = " Enable";
 __code const char disable_msg[] = "Disable";
 #else

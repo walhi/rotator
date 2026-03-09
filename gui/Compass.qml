@@ -7,6 +7,16 @@ Rectangle {
 
     property var upperValue: 190
     property var lowerValue: 170
+    Connections {
+        target: rotator
+
+        onPositionUpdate: {
+
+            ant_position.clear()
+            ant_position.append(0, 0)
+            ant_position.append(value, 3)
+        }
+    }
 
     PolarChartView {
         id: chart
@@ -15,8 +25,8 @@ Rectangle {
         CategoryAxis {
             id: yAxis
             min: 0
-            max: 1
-            tickCount: 0
+            max: 3
+            tickCount: 2
             labelsVisible: false
         }
         ValueAxis {
@@ -37,7 +47,7 @@ Rectangle {
         LineSeries {
             id: mouse_position
             width: 2
-            color: "lightgray"
+            color: "gray"
             axisRadial: yAxis
             axisAngular: xAxis
         }
@@ -46,14 +56,14 @@ Rectangle {
             axisRadial: yAxis
             axisAngular: xAxis
             XYPoint { x: lowerValue; y: 0 }
-            XYPoint { x: lowerValue; y: 1 }
+            XYPoint { x: lowerValue; y: 3 }
         }
         LineSeries {
             id: upperLine
             axisRadial: yAxis
             axisAngular: xAxis
             XYPoint { x: upperValue; y: 0 }
-            XYPoint { x: upperValue; y: 1 }
+            XYPoint { x: upperValue; y: 3 }
         }
         AreaSeries {
             axisRadial: yAxis
@@ -79,7 +89,24 @@ Rectangle {
             }
 
             XYPoint { x: 0; y: 0 }
-            XYPoint { x: 0; y: 1 }
+            XYPoint { x: 0; y: 3 }
+            color: "green"
+
+        }
+        LineSeries {
+            id: target_position
+            width: 5
+            axisRadial: yAxis
+            axisAngular: ValueAxis {
+                min: 0
+                max: 360
+                tickCount: 9
+                labelFormat: "%d"
+                labelsVisible: false
+            }
+
+            XYPoint { x: 0; y: 0 }
+            XYPoint { x: 0; y: 3 }
 
         }
 
@@ -99,9 +126,14 @@ Rectangle {
             onPositionChanged:{
                 var point = chart.mapToValue(Qt.point(mouse.x,mouse.y));
 
+                if (point.y < 2){
+                    /* шаг в 45 градусов */
+                    point.x = Math.round(point.x / 45) * 45;
+                }
+
                 mouse_position.clear()
                 mouse_position.append(0, 0)
-                mouse_position.append(point.x, 1)
+                mouse_position.append(point.x, 3)
 
                 text_value.text = point.x.toFixed(0);
             }
@@ -109,6 +141,11 @@ Rectangle {
             onClicked: {
                 var point = chart.mapToValue(Qt.point(mouse.x,mouse.y));
 
+                if (point.y < 2){
+                    /* шаг в 45 градусов */
+                    point.x = Math.round(point.x / 45) * 45;
+                }
+                /*
                 if (point.x < upperValue && point.x > lowerValue)
                 {
                     if (point.x < (lowerValue + (upperValue - lowerValue)/2))
@@ -116,10 +153,10 @@ Rectangle {
                     else
                         point.x = upperValue;
                 }
-
-                ant_position.clear()
-                ant_position.append(0, 0)
-                ant_position.append(point.x, 1)
+                */
+                target_position.clear()
+                target_position.append(0, 0)
+                target_position.append(point.x, 3)
 
                 rotator.go(point.x)
             }

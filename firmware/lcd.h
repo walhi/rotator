@@ -34,7 +34,7 @@ inline void LCDPrintChar(char c){
 }
 
 
-#define BIG_FONT
+//#define BIG_FONT
 #ifdef BIG_FONT
 void LCDPrintBigDigit(uint8_t digit, uint8_t pos);
 #endif
