@@ -22,7 +22,7 @@ __sbit __at (0x6) DATA_B6;
 __sbit __at (0x7) DATA_B7;
 */
 
-#define E_PULSE_WIDTH 100
+#define E_PULSE_WIDTH 40
 
 void LCDHwInit(void){
   P2 = 0xff;

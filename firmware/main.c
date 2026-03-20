@@ -18,23 +18,28 @@
 /* Конфигурация */
 extern struct config cfg;
 
-//#define DEBUG_IMPULSE
+#define DEBUG_IMPULSE
 
 /* Текущее положение антенны в градусах */
 int16_t antAzimuth = 0;
 int16_t antElevation = 0;
 
-/* Текущее положение антенны в "тиках" "энкодера" */
-extern int16_t antAzimuthPos;
-extern int16_t antElevationPos;
+/* Значения с прошлой итерации цикла */
+int16_t oldAntAzimuth = 0;
+int16_t oldAntElevation = 0;
+
 
 /* Целевое значение положения антенны в градусах */
 int16_t targetAzimuth;
 int16_t targetElevation;
 
+/* Текущее положение антенны в "тиках" "энкодера" */
+extern int16_t antAzimuthPos;
+extern int16_t antElevationPos;
+
 /* Целевое значение положения антенны в "тиках" "энкодера" */
-int16_t targetAzimuthPos;
-int16_t targetElevationPos;
+extern int16_t targetAzimuthPos;
+extern int16_t targetElevationPos;
 
 /* Режим работы */
 enum workMode mode;
@@ -47,6 +52,8 @@ int16_t virtualZero;
 int16_t tmpAntAzimuth;
 int16_t tmpTargetAzimuth;
 
+/* Переменная с событиями */
+union triggers trigger;
 
 #ifdef __SDCC
 /* SDCC требует прототипы прерываний только внутри файла, содержащего main()...  */
@@ -164,9 +171,6 @@ static void calcDir(void)
 	}
 }
 
-/* TODO костыль из-за недостатка памяти. */
-extern int16_t LCDAntAzimuth;
-
 extern int8_t azimuthTick;
 int main (void)
 {
@@ -180,19 +184,26 @@ int main (void)
 	/* Задержка для включения LCD экрана. А нужна ли? */
   delay_hw_ms(50);
 
-  /* Инициализация железа для работы с EEPROM */
+  /* Инициализация железа */
 	I2C_Init();
-
-	/* Чтение конфигурации из EEPROM */
-	readConfig();
-
-	/* Инициализация остального железа */
 	clockInit();
   LCDInit();
   encoderInit();
 	UARTInit();
   rotateInit();
 
+	/* Чтение конфигурации из EEPROM */
+	readConfig();
+
+
+
+
+	/*=========================================*/
+	/* Вход в режим настройки                  */
+	/* При удержании обоих энкодеров или несовпадении контрольной суммы  */
+	if (readConfig() || (encoderAzBtnGet(1) && encoderElBtnGet(1))){
+		configure();
+	}
 
 	/* Чтение положения из EEPROM */
   readAnt();
@@ -201,11 +212,6 @@ int main (void)
 		antElevation = elP2D(antElevationPos);
 	}
 
-	/*=========================================*/
-	/* Вход в режим настройки                  */
-	if (encoderAzBtnGet(1) && encoderElBtnGet(1)){
-		configure();
-	}
 
 
 	/*=========================================*/
@@ -219,7 +225,7 @@ int main (void)
 	virtualZero = (virtualZero > 180)?(virtualZero - 360):virtualZero;
 
   startupMessage();
-	delay_hw_ms(200);
+	delay_hw_ms(800);
 
 	/*=========================================*/
 	/* Вход в режим калибровки азимута         */
@@ -242,14 +248,18 @@ int main (void)
 	targetAzimuth = antAzimuth;
 	targetElevation = antElevation;
 
+
+	//
+	mode = WORK_MANUAL;
+
 	// Расчет зоны overlap
 	azConvert();
 
 	// Расчет допустимых направлений
 	calcDir();
 
-	//
-	mode = WORK_MANUAL;
+	// Тригерим все события для корректной отрисовки интерфейса
+	trigger.all = 0xff;
 
 	initUI();
 	printUI();
@@ -257,11 +267,18 @@ int main (void)
 	struct timer actionTimer;
 
   while(1){
+		/* Очистка переменной с событиями */
+		trigger.all = 0;
+
 		/*=========================================*/
 		/* Смена режимов работы                    */
     if (encoderElBtnGet(0)){
+			trigger.t.modeChange = 1;
       if (mode == WORK_PORT){
 				mode = WORK_MANUAL;
+				// сброс накопленного за время работы счетчика энкодера
+				encoderAzGet();
+				// Сброс уставки, чтобы не начинать движение при смене режима
         targetAzimuth = antAzimuth;
 			} else if (mode == WORK_MANUAL){
 				mode = WORK_PORT;
@@ -295,6 +312,7 @@ int main (void)
 					targetAzimuth += step;
           if (targetAzimuth >= 360) targetAzimuth -= 360;
           if (targetAzimuth < 0) targetAzimuth += 360;
+					trigger.t.azTargetChange = 1;
         } else {
 					step = 0;
 				}
@@ -305,7 +323,7 @@ int main (void)
 		/* Обработка зоны overlap                  */
 		azConvert();
 
-		if (1 || step){
+		if (trigger.t.azTargetChange){
 			/* Целевое значение менялось */
 			calcDir();
 		}
@@ -321,7 +339,9 @@ int main (void)
 
 		/*=========================================*/
 		/* Сохранение текущего положения в eeprom  */
-		if (antAzimuth != LCDAntAzimuth){
+		if (antAzimuth != oldAntAzimuth){
+			oldAntAzimuth = antAzimuth;
+			trigger.t.azChange = 1;
 			writeAnt();
 		}
 
@@ -331,18 +351,25 @@ int main (void)
 			/* Задержка начала движения при изменении */
 			/* Целевого значения вручную */
 			if (mode == WORK_PORT || timerCheck(&actionTimer)){
-				/* Перевод градусов в координаты "энкодера" */
-				targetAzimuthPos = ((((360 << 4) / cfg.Az.count) * targetAzimuth) >> 4); /* сдвиг для "увеличения точности" */
-
 				if (tmpAntAzimuth < tmpTargetAzimuth){
 					motorAzRight();
 				} else {
 					motorAzLeft();
 				}
+				// Взводим триггер, так как включали двигатель
+				trigger.t.driveChange = 1;
 			}
 		} else {
+			// Взводим триггер, если двигатель был включен
+			if (motorAzStatus())
+				trigger.t.driveChange = 1;
+
 			motorAzStop();
 		}
+
+		/*=========================================*/
+		/* Индикация работы двигателей */
+		P2_0 = !motorAzStatus();
 
 		/*=========================================*/
 		/* Интерфейс пользователя                  */
@@ -389,13 +416,13 @@ void Timer2_ISR(void) __interrupt (5) //TF2_VECTOR
 	encoderAzRead();
 	encoderElRead();
 
-#ifdef DEBUG_IMPULSE
+	#ifdef DEBUG_IMPULSE
 	if (debug_impulse_count == 0){
 		azimuthImpulse();
-		debug_impulse_count = 40;//RCAP2H >> 1;
+		debug_impulse_count = 50;//RCAP2H >> 1;
 	}
 	debug_impulse_count--;
-#endif
+	#endif
 }
 
 #endif

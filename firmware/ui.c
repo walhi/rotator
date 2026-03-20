@@ -3,6 +3,7 @@
 #include "ui.h"
 #include "lcd.h"
 #include "rotate.h"
+#include "motors.h"
 
 /* Конфигурация устройства */
 extern struct config cfg;
@@ -21,17 +22,12 @@ extern enum workMode mode;
 /* Допустимые направления */
 extern struct dir dirAllowed;
 
-/* Локальные переменные */
-enum workMode oldMode = WORK_NONE;
-int16_t LCDAntAzimuth = 0x7fff;
-static int16_t LCDAntElevation = 0x7fff;
-static int16_t LCDTargetAzimuth = 0x7fff;
-static int16_t LCDTargetElevation = 0x7fff;
+/* События */
+extern union triggers trigger;
 
+/* Локальные переменные */
 uint8_t antAzDig[3];
 uint8_t antElDig[3];
-//uint8_t antAzStr[3];
-//uint8_t antElStr[3];
 
 void startupMessage(void)
 {
@@ -40,94 +36,18 @@ void startupMessage(void)
 	LCDPosition(0, 1); LCDPrintString("Version 0.2");
 }
 
-/* Классический интерфейс */
-void oldPrintMode(void)
-{
-	LCDNormal();
-	LCDPosition(0, 0);
-	if (mode == WORK_PORT){
-		LCDPrintString("PORT");
-	} else {
-		LCDPrintString(" MAN");
-	}
-	LCDReverse(); // числа выводятся в обратном порядке
-}
-
-void oldInit(void)
-{
-	LCDClear();
-	LCDNormal();
-	LCDPosition(0, 0);
-	if (cfg.Flags.el_enable){
-		LCDPosition(4, 0);
-		LCDPrintString(" AZ    EL");
-		LCDPosition(0, 1);
-		LCDPrintString(" ANT");
-		LCDPrintString(" AZ    EL");
-	} else {
-		LCDPosition(4, 0);
-		LCDPrintString(" AZIMUTH ");
-		LCDPosition(0, 1);
-		LCDPrintString(" ANT");
-		LCDPrintString(" AZIMUTH ");
-	}
-	oldPrintMode();
-}
-
-void oldPrintTarget(void)
-{
-	if (cfg.Flags.el_enable){
-		LCDPosition(9, 0);
-		LCDPrint(targetAzimuth, 3);
-		LCDPosition(15, 0);
-		LCDPrint(targetElevation, 3);
-	} else {
-		LCDPosition(15, 0);
-		LCDPrint(targetAzimuth, 3);
-	}
-}
-
-void oldPrintAnt(void)
-{
-	if (cfg.Flags.el_enable){
-		LCDPosition(9, 1);
-		LCDPrint(antAzimuth, 3);
-		LCDPosition(15, 1);
-		LCDPrint(antElevation, 3);
-	} else {
-		LCDPosition(15, 1);
-		LCDPrint(antAzimuth, 3);
-	}
-}
-
-void oldPrintUI(void)
-{
-  if (oldMode != mode){
-    oldMode = mode;
-		oldPrintMode();
-  }
-	if (LCDTargetAzimuth != targetAzimuth){
-		LCDTargetAzimuth = targetAzimuth;
-    oldPrintTarget();
-  }
-	if (LCDAntAzimuth != antAzimuth){
-		LCDAntAzimuth = antAzimuth;
-		oldPrintAnt();
-  }
-}
-
-extern int16_t virtualZero;
-extern int16_t tmpAntAzimuth;
-extern int16_t tmpTargetAzimuth;
-
+#define debug_mode 0
 
 /* Интерфейс с большими цифрами */
-#ifdef BIG_FONT
-void printBigAnt(int16_t value)
+void printBigAnt()
 {
   static uint8_t LCDD1 = 0xff;
   static uint8_t LCDD2 = 0xff;
-  static uint8_t LCDD3 = 0xff;
+
+	LCDNormal();
+
+	// Выводим только при изменении
+	// Экономим время на тормозном обмене с LCD
   if (LCDD1 != antAzDig[0]){
     LCDD1 = antAzDig[0];
 		if (LCDD1 != 0){
@@ -144,29 +64,44 @@ void printBigAnt(int16_t value)
 			LCDPrintBigDigit(' ', 10);
 		}
   }
-  if (LCDD3 != antAzDig[2]){
-    LCDD3 = antAzDig[2];
-    LCDPrintBigDigit(LCDD3, 13);
-  }
-}
-#endif
 
-void newPrintUI(void){
+	// Последняя цифра всегда изменяется
+	LCDPrintBigDigit(antAzDig[2], 13);
+}
+
+void azOnlyUI(void){
 	/* Режим работы */
-  if (oldMode != mode){
-    oldMode = mode;
+  if (trigger.t.modeChange){
 		LCDNormal();
 		LCDPosition(0, 0);
+
 		if (mode == WORK_PORT){
 			LCDPrintString("Port  ");
 		} else {
 			LCDPrintString("Manual");
 		}
-  }
+  } else if (trigger.t.driveChange){
+		LCDNormal();
+		LCDPosition(0, 0);
+		int8_t tmp = motorAzTick();
+		if (tmp){
+			char l = ' ';
+			char r = ' ';
+			if (tmp < 0)
+				l = '<';
+			else
+				r = '>';
+
+			LCDPrintChar(l);
+			LCDPrintString("Run ");
+			LCDPrintChar(r);
+		} else {
+			LCDPrintString(" Stop ");
+		}
+	}
 
 	/* Целевое значение азимута */
-  if (LCDTargetAzimuth != targetAzimuth || LCDAntAzimuth != antAzimuth){
-    LCDTargetAzimuth = targetAzimuth;
+  if (trigger.t.azTargetChange){
 		LCDReverse(); // числа выводятся в обратном порядке
     LCDPosition(5, 1);
 
@@ -189,49 +124,27 @@ void newPrintUI(void){
   }
 
 	/* Текущее положение */
-	if (LCDAntAzimuth != antAzimuth){
-		LCDAntAzimuth = antAzimuth;
-		LCDNormal();
-#ifdef BIG_FONT
-		printBigAnt(antAzimuth);
-#endif
+	if (trigger.t.azChange){
+		printBigAnt();
 	}
-
 }
+
 
 void printUI(void){
 	// Извлечение цифр, используется далее в нескольких местах
-
-	antElDig[0] = antElevation / 100;
-	antElDig[1] = antElevation % 100 / 10;
-	antElDig[2] = antElevation % 10;
-
-	/*
-	antElStr[0] = antElDig[0] + '0';
-	antElStr[1] = antElDig[1] + '0';
-  antElStr[2] = antElDig[2] + '0';
-	*/
-
 	antAzDig[0] = antAzimuth / 100;
 	antAzDig[1] = antAzimuth % 100 / 10;
 	antAzDig[2] = antAzimuth % 10;
-	/*
-	antAzStr[0] = antAzDig[0] + '0';
-	antAzStr[1] = antAzDig[1] + '0';
-  antAzStr[2] = antAzDig[2] + '0';
-	*/
 
-  if (cfg.Flags.ui_use_old){
-    oldPrintUI();
-  } else {
-    newPrintUI();
-  }
+	if (!cfg.Flags.el_enable){
+		azOnlyUI();
+	} else {
+		antElDig[0] = antElevation / 100;
+		antElDig[1] = antElevation % 100 / 10;
+		antElDig[2] = antElevation % 10;
+	}
 }
 
 void initUI(void){
-  if (cfg.Flags.ui_use_old){
-    oldInit();
-  } else {
-		LCDClear();
-	}
+	LCDClear();
 }

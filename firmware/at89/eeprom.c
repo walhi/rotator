@@ -122,7 +122,8 @@ void readAnt(void)
 	readData((uint8_t *)&antAzimuthPos, sizeof(antAzimuthPos), posAddress);
 	readData((uint8_t *)&antElevationPos, sizeof(antElevationPos), posAddress + 2);
 
-	/* Все равно используется меньше, чем 2^13 */
+	/* Извлекаем флаги положения провода */
+	/* Все равно используется меньше, чем 2^13 от переменной */
 	if (antElevationPos & 0x4000) dirAllowed.wire_right = 1;
 	if (antElevationPos & 0x2000) dirAllowed.wire_left = 1;
 	antElevationPos &= ~0x6000;
@@ -132,7 +133,9 @@ void writeAnt(void)
 {
 	posAddress = 0;
 	writeData((uint8_t *)&antAzimuthPos, sizeof(antAzimuthPos), posAddress);
-	/* Все равно используется меньше, чем 2^13 */
+
+	/* Упаковываем флаги положения провода */
+	/* Все равно используется меньше, чем 2^13 от переменной */
 	if (dirAllowed.wire_right) antElevationPos |= 0x4000;
 	if (dirAllowed.wire_left)  antElevationPos |= 0x2000;
 	writeData((uint8_t *)&antElevationPos, sizeof(antElevationPos), posAddress + 2);

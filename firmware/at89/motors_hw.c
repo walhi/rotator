@@ -3,6 +3,6 @@
 
 void motorsHwInit(void)
 {
-  P1 |= 0x0f;
+  P1 |= 0xf0;
   P3 |= (1 << 6) | (1 << 7);
 }

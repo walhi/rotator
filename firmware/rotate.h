@@ -15,6 +15,21 @@ struct dir {
   unsigned wire_left: 1;
 };
 
+struct triggersBits {
+  unsigned azChange: 1;
+  unsigned azTargetChange: 1;
+  unsigned elChange: 1;
+  unsigned elTargetChange: 1;
+  unsigned modeChange: 1;
+  unsigned driveChange: 1;
+};
+
+union triggers {
+	uint8_t all;
+	struct triggersBits t;
+};
+
+
 inline void rotateInit(void){
   rotateHwInit();
 }

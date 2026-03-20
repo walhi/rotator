@@ -7,7 +7,7 @@
 void motorsHwInit(void);
 
 /* ------------------------------------------------- */
-/* Управление транзистором */
+/* Управление питанием двигателя */
 inline void motorAzEnable(void)
 {
   P3_6 = 1;
@@ -50,6 +50,12 @@ inline int8_t motorAzR2Status(void)
   return P1_5;
 }
 
+inline int8_t motorAzStatus(void)
+{
+  return P1_5 || P1_4;
+}
+
+
 /* ------------------------------------------------- */
 
 inline void motorElEnable(void)
@@ -75,7 +81,6 @@ inline void motorElR1Enable(void)
 inline void motorElR1Disable(void)
 {
 	P1_6 = 0;
-
 }
 
 inline int8_t  motorElR2Status(void)
@@ -92,4 +97,10 @@ inline void motorElR2Disable(void)
 {
 	P1_7 = 0;
 }
+
+inline int8_t motorElStatus(void)
+{
+  return P1_7 || P1_6;
+}
+
 #endif

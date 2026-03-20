@@ -73,7 +73,7 @@ uint8_t configureFlag(char* name, uint8_t value)
 	return value;
 }
 
-int16_t configureInt(char* name, int16_t min, int16_t max, int16_t currentValue)
+int16_t configureInt(char* name, int16_t min, int16_t max, int16_t currentValue, uint8_t loop)
 {
   int8_t encoder;
 	int16_t value = currentValue;
@@ -87,8 +87,15 @@ int16_t configureInt(char* name, int16_t min, int16_t max, int16_t currentValue)
 		encoder = encoderAzGet();
 		if (encoder){
 			value += encoder;
-			if (value < min) value = min;
-			if (value > max) value = max;
+			if (loop){
+				// Режим петли
+				if (value < min) value = max;
+				if (value > max) value = min;
+			} else {
+				// Режим ограничения
+				if (value < min) value = min;
+				if (value > max) value = max;
+			}
 
 
 			PrintValue(value, 5);
@@ -109,19 +116,24 @@ void configure(void)
 	delay_hw_ms(300);
 
 
-	cfg.Az.count = configureInt("AZ 360 imp count", 0, 32000, cfg.Az.count);
-	cfg.Az.overlap_position = configureInt("AZ overlap pos:", 0, 360, cfg.Az.overlap_position);
-	cfg.Az.overlap_size = configureInt("AZ overlap size:", 0, 360, cfg.Az.overlap_size);
-	//cfg.Az.parking = configureInt("AZ Parking:", 0, 360, cfg.Az.parking);
+	cfg.Az.count = configureInt("AZ 360 imp count", 0, 4000, cfg.Az.count, 0);
+	cfg.Az.overlap_position = configureInt("AZ overlap pos:", 0, 359, cfg.Az.overlap_position, 1);
+	cfg.Az.overlap_size = configureInt("AZ overlap size:", 0, 180, cfg.Az.overlap_size, 1);
+	cfg.Az.parking = configureInt("AZ Parking:", 0, 359, cfg.Az.parking, 1);
 
-	cfg.Flags.ui_use_old = configureFlag("Old interface:", cfg.Flags.ui_use_old);
+	//cfg.Flags.ui_use_old = configureFlag("Old interface:", cfg.Flags.ui_use_old);
+	//cfg.Flags.led_pulse = configureFlag("LED out AZ pulse:", cfg.Flags.led_pulse);
+	//cfg.Flags.debug_pulse = 0; //configureFlag("Debug pulse:", cfg.Flags.debug_pulse);
+	//cfg.debug_pulse_int = 0; //configureInt("Debug pulse int:", 40, 250, cfg.debug_pulse_int, 1);
+	/*
   cfg.Flags.el_enable = configureFlag("Elevation:", cfg.Flags.el_enable);
 	if (cfg.Flags.el_enable){
-		cfg.El.count = configureInt("EL 180 imp count", 0, 32000, cfg.El.count);
-		cfg.El.min = (uint8_t)configureInt("EL start:", 0, 180, cfg.El.min);
-		cfg.El.max = (uint8_t)configureInt("EL end:", 0, 180, cfg.El.max);
+		cfg.El.count = configureInt("EL 180 imp count", 0, 4000, cfg.El.count, 0);
+		cfg.El.min = (uint8_t)configureInt("EL start:", 0, 180, cfg.El.min, 1);
+		cfg.El.max = (uint8_t)configureInt("EL end:", 0, 180, cfg.El.max, 1);
 		//cfg.El.parking = (uint8_t)configureInt("EL Parking:", 0, 360, cfg.El.parking);
 	}
+	*/
 	writeConfig();
 }
 #endif

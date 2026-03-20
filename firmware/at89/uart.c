@@ -1,7 +1,7 @@
 #include <8052.h>
 #include "uart.h"
 
-char UARTBuf[16];
+char UARTBuf[8];
 static char UARTBufPos;
 static char UARTTxLen = 0;
 static uint8_t flag = 0;

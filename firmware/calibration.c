@@ -20,34 +20,9 @@ extern int16_t antElevation;
 
 void calibrateAz(void){
 	// Заголовок
-  LCDClear();
-	LCDPosition(0, 0);
-	LCDNormal();
-
-	LCDPrintString("Az calibration");
-	//LCDWriteBuf(STR1, 14);
-
-	// Реверс печати на дисплей для удобства
-	LCDReverse();
-
-	// Текущее положение
-	LCDPosition(15, 1);
-	LCDPrint(antAzimuth, 3);
-	while(1){
-		int8_t step = encoderAzGet();
-		if (step){
-			antAzimuth += step;
-			if (antAzimuth < 0) antAzimuth += 360;
-			if (antAzimuth > 360) antAzimuth -= 360;
-			LCDPosition(15, 1);
-			LCDPrint(antAzimuth, 3);
-		}
-		if (encoderAzBtnGet(BTN_SINGLE)){
-			antAzimuthPos = azD2P(antAzimuth);
-      writeAnt();
-			break;
-		}
-	}
+	antAzimuth = configureInt("Az calibration", 0, 360, antAzimuth, 1);
+	antAzimuthPos = azD2P(antAzimuth);
+  writeAnt();
 }
 
 void calibrateEl(void){

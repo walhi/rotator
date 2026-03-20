@@ -30,4 +30,7 @@ struct config {
 
 void configure(void);
 
+int16_t configureInt(char* name, int16_t min, int16_t max, int16_t currentValue, uint8_t loop);
+
+
 #endif
